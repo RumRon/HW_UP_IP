@@ -1,0 +1,404 @@
+---
+title: "Jiang_RuiHW1"
+author: "Rui Jiang"
+date: '2022-08-30'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+
+```{r setup, include=FALSE, cache = TRUE}
+knitr::opts_chunk$set(include = FALSE)
+library(knitr)
+library(kableExtra)
+library(rmarkdown)
+```
+
+# Setup
+## Install Libraries
+
+(If you have them installed, you can skip this step)
+
+```{r cars, eval=FALSE, include=FALSE, echo=TRUE}
+install.packages('tidyverse')
+install.packages('tidycensus')
+install.packages('sf')
+install.packages('dplyr')
+install.packages('kableExtra')
+```
+
+## load library
+
+load them using hte `library` command so that they are active in working environment
+sf - gis in r
+
+```{r pressure, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(tidycensus)
+library(sf)
+library(dplyr)
+library(kableExtra)
+```
+
+## api
+```{r load_key, warning = FALSE, eval = FALSE}
+census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite = TRUE)
+```
+
+### load api data
+```{r load_variables, cache=FALSE}
+acs_variable_list.2020 <- load_variables(2020, #year
+                                         "acs5", #five year ACS estimates
+                                         cache = TRUE)
+
+acs_variable_list.2016 <- load_variables(2016, #year
+                                         "acs5", #five year ACS estimates
+                                         cache = TRUE)
+```
+
+# Downloading Data from Tidycensus
+
+## Create a vector of census variables
+populate a vector of variable names we will send to the Census API - call this list `acs_vars`
+take this vector and put anything in it when have a new analysis to do and re-run it for different variables
+
+```{r acs_vars}
+acs_vars <- c("B01001_001E", # ACS total Pop estimate
+              "B25002_001E", # Estimate of total housing units
+              "B25002_003E", # Number of vacant housing units
+              "B19013_001E", # Median HH Income ($)
+              "B02001_002E", # People describing themselves as "white alone"
+              "B06009_006E") # Total graduate or professional degree
+```
+## Call the Census API to get tract level data for 2020 for all of Philadelphia
+use the `get_acs` function in `tidycensus` to query the API
+`get_decennial` which can use for decennial census counts
+`acs_vars` for all tracts in Philadelphia County, PA in 2020; ask for "wide" data (e.g. one variable per column, one row per tract) and we set `geometry` to `FALSE`.
+use `?get_ac` to see details
+```{r get_acs_2020, cache = TRUE, message = FALSE, warning = FALSE}
+acsTractsPHL.2020 <- get_acs(geography = "tract",
+                             year = 2020, 
+                             variables = acs_vars, 
+                             geometry = FALSE, 
+                             state = "PA", 
+                             county = "Philadelphia", 
+                             output = "wide") 
+```
+
+# Wrangling Data with dplyr
+
+## Mutating, selecting and renaming variables
+The `dplyr` package is great for these operations and has some very common sense functions that are fairly intuitive because they use "verbs".
+
+-select columns (`select`)
+
+-rename columns (`rename`)
+
+-summarize data (`summarize`) by groups (`group_by`)
+
+- create new columns and specify their value (`mutate`)
+
+The operator `%>%` is known as the "pipe" and lets you chain operations together - passing a dataframe along through different operations.
+
+select tract `GEOID` and `NAME` and only those variables in the `acs_vars` list - we are only using the estimates from the ACS (suffix "E" on the variable names), we are not retaining the margin of error calculations (suffix "M" on the variable names).
+
+Second `rename` our variables to more common sense names.
+
+Lastly `mutate` a few new columns.
+
+```{r do_some_dplyr, cache = TRUE}
+acsTractsPHL.2020 <- acsTractsPHL.2020 %>%
+  dplyr::select (GEOID, NAME, all_of(acs_vars))
+
+acsTractsPHL.2020 <- acsTractsPHL.2020 %>%
+  rename (total_pop.2020 = B01001_001E,
+          total_HU.2020 = B25002_001E,
+          total_vacant.2020 = B25002_003E,
+          med_HH_Income.2020 = B19013_001E,
+          total_White.2020 = B02001_002E,
+          total_GradDeg.2020 = B06009_006E)
+
+acsTractsPHL.2020 <- acsTractsPHL.2020 %>%
+  mutate(vacancyPct.2020 = total_vacant.2020/total_HU.2020,
+         pctWhite.2020 = total_White.2020/total_pop.2020)
+```
+
+grab the 2016 data and do the same operations, *chain the piped operations directly to the API call and do it all at once*. The only difference here is that change the variable names to say "2016" in them, not "2020".
+
+```{r get_acs_2016, cache = TRUE, message = FALSE}
+acsTractsPHL.2016 <- get_acs(geography = "tract",
+                             year = 2016, 
+                             variables = acs_vars,
+                             geometry = FALSE,
+                             state = "PA", 
+                             county = "Philadelphia",
+                             output = "wide") %>%
+  dplyr::select (GEOID, NAME, all_of(acs_vars)) %>% 
+  rename (total_pop.2016 = B01001_001E,
+          total_HU.2016 = B25002_001E,
+          total_vacant.2016 = B25002_003E,
+          med_HH_Income.2016 = B19013_001E,
+          total_White.2016 = B02001_002E,
+          total_GradDeg.2016 = B06009_006E) %>%
+  mutate(vacancyPct.2016 = total_vacant.2016/total_HU.2016,
+         pctWhite.2016 = total_White.2016/total_pop.2016)
+```
+
+## Joining data
+tabular join - each of our census dataframes should have a unique ID for each tract. You need to join columns that consist of the same type of data. Using hte `glimpse` command can give you a quick overview of the data types for each column in your data set. Recall that joining character to numeric data is going to be a no-go.
+
+There are four kinds of joins -  https://rpubs.com/williamsurles/293454
+
+left join - keeping all the observations from the left hand side of the join argument, and only those which match from the right. Ideally this consists of all of the observations from the right hand side considering we have the same geometries in 2016 and 2020.
+```{r left_join_tracts, cache = TRUE}
+allACS <- left_join(acsTractsPHL.2016, acsTractsPHL.2020, by= c("GEOID"))
+```
+
+## Doing column math using mutate
+
+The `mutate` function can be used to create new columns. These columns can be the product of arithmetic using other columns. Here we are going to calculate changes in inflation-adjusted median household income from 2016-2020 and the change in the percentage of people holding a graduate degree. (Notice how we multiply `med_HH_Income.2016` by 1.08 to adjust it to 2020 dollars).
+
+Notice that you are overwriting allACS with a new data frame called the same thing. You can overwrite anything if you create something with the same name - so be careful!
+
+```{r do_mutates, cache = TRUE}
+allACS <- allACS %>%
+  mutate(change_med_HH_Income = med_HH_Income.2020 - (med_HH_Income.2016 * 1.08), 
+         change_Grad_Degree_Pct = (total_GradDeg.2020/total_pop.2020)-(total_GradDeg.2016/total_pop.2016))
+
+```
+
+## Exercise - Creating New Variables
+
+Use the `mutate` command to create three new variables in your allACS data set. These variables can either be measures of change or proportions/percentages.
+
+If you want, you can put some new variables in your ACS data sets by adding to `acs_vars` - just make sure you put something in the `rename` commands we used earlier if you want to have intelligible variable names.
+
+```{r do_mutates_exercise, cache = TRUE}
+allACS <- allACS %>%
+  mutate(change_total_pop = total_pop.2020 - total_pop.2016, 
+         change_pctWhite = pctWhite.2020 - pctWhite.2016,
+         change_total_hu = total_HU.2020 - total_HU.2016)
+
+```
+
+# Summarizing Census Data
+
+## Exploring central tendancies
+
+Base R language has lots of summary statistical functions, like `mean` and `median`. We can apply these to columns in our data frame.
+
+This one comes back `NA`. NA plus NA equals NA - so summarizing these data won't work.
+
+```{r base_r_summaries_NA_example, cache = TRUE}
+mean(allACS$change_med_HH_Income)
+```
+Can you think of some reasons why omitting NA data might be problematic?
+```{r base_r_summaries_NA_rm, cache = TRUE}
+mean(allACS$change_med_HH_Income, na.rm = TRUE)
+
+median(allACS$change_med_HH_Income, na.rm = TRUE)
+```
+### `na.rm` is a logical value indicating whether NA values should be stripped before the computation proceeds.
+### missing data might have spatial pattern; we could estimate data?
+
+## Exploring distributions
+
+Base R has a graphics package - we can look at the distribution of the data, instead of just the central tendencies (e.g. `mean` and `median`).
+
+```{r basic_histogram, cache = TRUE}
+hist(allACS$change_med_HH_Income)
+```
+
+use the dynamic graphics package from the tidyverse, `gglot2` to make some more detailed histograms.
+Notice that the `+` sign does the same work in ggplot that the `%>%` does in tidy code.
+```{r ggplot_histogram_simple, warning = FALSE, cache = TRUE, message = FALSE}
+ggplot(allACS)+
+  geom_histogram(aes(change_med_HH_Income))
+  
+```
+
+title and label
+
+```{r ggplot_histogram, warning = FALSE, cache = TRUE}
+ggplot(allACS)+
+  geom_histogram(aes(change_med_HH_Income), binwidth = 5000)+
+  labs(
+    title = "Change in Philadelphia HH median income by tract, 2016-2020",
+    caption = "Data: US Census Bureau, ACS 5-year estimates",
+    x="Change in Med HH Income (2020 dollars)", 
+       y="Number of tracts")
+  
+```
+there are some tracts with a huge increase in Med HH Income! What is the simplest explanation for that?
+### based small numbers, new houses development
+
+## Making a summary table
+
+The `summarize` function from the `dplyr` library is very powerful 
+- use these summary functions in the context of a table 
+- create a table of statistics and easily export it for use in a report.
+
+```{r summaryTable, cache = TRUE}
+summaryTable <- allACS %>%
+  summarize(mean_change_HH_Income = mean(change_med_HH_Income, na.rm = TRUE),
+            med_change_HH_Income = median(change_med_HH_Income, na.rm = TRUE))
+```
+
+# Comparing geographies
+
+creating a neighborhood plan for a particular neighborhood Mt. Airy, in Philadelphia's Northwest section.
+
+making a vector that has the GEOIDs of census tracts in Mt. Airy. The allACS$GEOID column is a CHARACTER, not a number, athough it appears numeric.
+
+create a vactor variable, which we call `mtAiry`, using a "boolean" statement.
+
+if a tract has a GEOID in `myTracts`, the variable `mtAiry` should take on a value of "MT AIRY", or else it takes on a value of "REST OF PHILADELPHIA"
+
+```{r myTracts, cache = TRUE}
+
+myTracts <- c("42101023500", 
+              "42101023600", 
+              "42101023700", 
+              "42101025300", 
+              "42101025400",
+              "42101025500", 
+              "42101025600", 
+              "42101038800")
+
+allACS <- allACS %>%
+  mutate(mtAiry = ifelse(GEOID %in% myTracts, "MT AIRY", "REST OF PHILADELPHIA"))
+```
+
+make a new summary table, this time accounting for the statistics for both Mt. Airy and the rest of the city. 
+
+We can see that city-wide, "on average" the mean tract income level increased, while the median level decreased. Why might this be?
+### might be several really high income but in numbers more low income
+We had the opposite dynamic in Mt. Airy, where median household income per tract rose, while mean income fell.
+### really low incomes with more high income
+
+```{r summary_table_2, cache = TRUE, message = FALSE, warning = FALSE}
+summaryTable2 <- allACS %>%
+  group_by(mtAiry) %>%
+  summarize(mean_change_HH_Income = mean(change_med_HH_Income, na.rm = TRUE),
+            med_change_HH_Income = median(change_med_HH_Income, na.rm = TRUE))
+```
+
+## Graphic comparisons Using ggplot2
+
+A graphical approach to subdividing and summarizing the data might make this easier to figure out.
+
+We could compare the distributions between Mt. Airy and the City by taking our histogram we created earlier and using the `facet_wrap` option to subdivide the data and create a side-by-side comparison.
+
+What can we see here about the distributions of the data, and how the distribution and the central tendencies might tell us different stories about what's happening?
+
+```{r ggplot_histogram_2, warning = FALSE, cache = TRUE}
+ggplot(allACS)+
+  geom_histogram(aes(change_med_HH_Income),
+                 binwidth = 5000)+
+  labs(
+    title = "Change in Philadelphia HH median income by tract, 2016-2020",
+    caption = "Data: US Census Bureau, ACS 5-year estimates",
+    x="Change in Med HH Income (2020 dollars)", 
+       y="Number of tracts")+
+  facet_wrap(~mtAiry, scales = "free")
+  
+```
+
+We can create a scatterplot to see what the relationship is between 2016 and 2020 income and where our Mt. Airy tracts fall.
+
+Notice how we put the inflation adjustment right in the `geom_point` call - you can temporarily create new data inside your ggplot diagrams!
+
+I set a `fill` parameter to differentiate between our factor levels in the data.
+
+I add a line that represents y=x using `geom_abline`.
+
+What do you think this line represents? How does it help us interpret these points we are seeing?
+
+```{r ggplot_point1, warning = FALSE, cache = TRUE}
+ggplot(allACS)+
+  geom_point(aes(x =med_HH_Income.2016 * 1.08, 
+                 y = med_HH_Income.2020,
+                 color = mtAiry))+
+  geom_abline(intercept = 0, slope = 1)+
+  labs(
+    title = "2020 Median HH Income as a Function of 2016 Median HH Income",
+    subtitle = "All figures in 2020 dollars",
+    caption = "Data: US Census Bureau, ACS 5-year estimates",
+    x="Med HH Income 2016 ($)", 
+    y="Med HH Income 2020 ($)")
+  
+```
+
+There are very well established correlations between socio-demographic characteristics and wealth in the US. Philadelphia is no exception. A simple scatterplot is stark evidence of this correlation. 
+
+We can plot a `geom_smooth` trendline in here using the `method = "lm"` e.g. a linear fit to see. The default for `geom_smooth` is much more wiggly and may not be the best for visuals like this.
+
+How do our tracts in Mt. Airy look in the context of distribution of wealth and relative to the trend line?
+
+If you plot these data for 2020, do they look different?
+
+
+```{r ggplot_point2, warning = FALSE, cache = TRUE, message = FALSE}
+ggplot(allACS)+
+  geom_point(aes(x = 100* pctWhite.2020, 
+                 y = med_HH_Income.2020,
+                 color = mtAiry))+
+  geom_smooth(aes(x = 100* pctWhite.2020, 
+                  y = med_HH_Income.2020), 
+              method = "lm", se = FALSE)+
+  labs(
+    title = "2020 Median HH Income as a Function of Pct White",
+    subtitle = "All figures in 2020 dollars",
+    caption = "Data: US Census Bureau, ACS 5-year estimates",
+    x="Pct. Residents Identifying as 'White Only'", 
+    y="Med HH Income 2020 ($)")
+  
+```
+
+# Homework 1
+
+
+```{r ggplot_point11, warning = FALSE, cache = TRUE}
+ggplot(allACS)+
+  geom_point(aes(x =total_vacant.2016, 
+                 y = total_vacant.2020,
+                 color = mtAiry))+
+  geom_abline(intercept = 0, slope = 1)+
+  labs(
+    title = "number of vacant housing units per tract in 2020 ",
+    subtitle = "as a function of vacant housing units in 2016",
+    caption = "Data: US Census Bureau, ACS 5-year estimates",
+    x="vacant housing units in 2016", 
+    y="vacant housing units in 2020")
+  
+```
+
+Above the line means there are more vacant housing in 2020 than in 2016; below the line means there are less vacant housing in 2020 than in 2016.
+
+
+```{r ggplot_point111, warning = FALSE, cache = TRUE}
+ggplot(allACS)+
+  geom_point(aes(x =total_HU.2016, 
+                 y = total_vacant.2016,
+                 color = mtAiry))+
+  geom_abline(intercept = 0, slope = 0.1)+
+  labs(
+    title = "number of vacant housing units per tract in 2020 ",
+    subtitle = "as a function of vacant housing units in 2016",
+    caption = "Data: US Census Bureau, ACS 5-year estimates",
+    x="total housing units in 2016", 
+    y="vacant housing units in 2016")
+  
+```
+The point below the line means vacant house and total housing ratio is less than 10% in that tract; above the line the ratio is higher than 10%.
+```{r summary_table_3, cache = TRUE, message = FALSE, warning = FALSE}
+summaryTable3 <- allACS %>%
+  group_by(mtAiry) %>%
+  summarize(mean_vacant.2020 = mean(total_vacant.2020, na.rm = TRUE))
+
+kbl(summaryTable3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
