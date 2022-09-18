@@ -23,6 +23,7 @@ library(tidyverse)
 library(tidycensus)
 library(sf)
 library(kableExtra)
+library(geojsonio)
 
 options(scipen=999)
 options(tigris_class = "sf")
@@ -34,5 +35,370 @@ palette5 <- c("#f0f9e8","#bae4bc","#7bccc4","#43a2ca","#0868ac")
 
 ```{r load_key, warning = FALSE, eval = FALSE}
 census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite = TRUE, install = TRUE)
+```
+
+
+```{r results='hide'}
+tracts09 <-  
+  get_acs(geography = "tract",
+          variables = c("B25026_001E","B02001_002E",
+                        "B15001_050E","B15001_009E",
+                        "B19013_001E", "B25058_001E",
+                        "B06012_002E"), 
+          year=2009, state= "CA", #06
+          county="San Francisco", geometry=TRUE) %>%  #075
+  st_transform('EPSG:2229')
+```
+
+
+```{r}
+glimpse(tracts09)
+```
+
+
+
+We create a new data frame consisting only of population
+
+```{r}
+
+totalPop09 <-
+  tracts09 %>%
+  filter(variable == "B25026_001")
+```
+
+Ways to examine the data
+
+```{r}
+nrow(totalPop09)
+
+names(totalPop09)
+
+head(totalPop09)
+
+glimpse(totalPop09)
+```
+
+### Using ggplot to map census data with {sf}
+
+Each plot adds more and more nuance and information
+
+Examine each to see what we've added each time
+
+Consult the textbook to understand the symbology schemes.
+
+(Note: the `qBr()` function used here is an update to the one used
+version used in the text book so the results may appear different.)
+
+```{r}
+A <- 
+  ggplot() +
+  geom_sf(data = totalPop09, aes(fill = estimate)) +
+  theme(
+    plot.title = element_text(size=22)
+    )
+
+B <- 
+  ggplot() +
+  geom_sf(data = totalPop09, aes(fill = q5(estimate))) +
+  theme(plot.title = element_text(size=22)) 
+
+C <-
+  ggplot() +
+  geom_sf(data = totalPop09, aes(fill = q5(estimate))) +
+  scale_fill_manual(values = palette5,
+                    labels = qBr(totalPop09, "estimate"),
+                    name = "Total\nPopluation\n(Quintile Breaks)") +
+  theme(plot.title = element_text(size=22))
+
+D <- 
+  ggplot() +
+  geom_sf(data = totalPop09, aes(fill = q5(estimate))) +
+  scale_fill_manual(values = palette5,
+                    labels = qBr(totalPop09, "estimate"),
+                    name = "Popluation\n(Quintile Breaks)") +
+  labs(title = "Total Population", subtitle = "Philadelphia; 2009") +
+  mapTheme() + 
+  theme(plot.title = element_text(size=22))
+```
+
+Here we will modify the 2009 ACS by using `spread()` to widen the data
+so that each census variable is now a column. We will use `rename()` to
+give sensible names to the columns and we will use `mutate()` to make
+new features out of the existing columns. These are all steps we had
+introduced in Lab 1, except here we are doing it on {sf} spatial data
+frames.
+
+```{r}
+# Let's "spread" the data into wide form
+
+tracts09 <- 
+  tracts09 %>%
+  dplyr::select( -NAME, -moe) %>%
+  spread(key = variable, value = estimate) %>%
+  rename(TotalPop = B25026_001, 
+         Whites = B02001_002,
+         FemaleBachelors = B15001_050, 
+         MaleBachelors = B15001_009,
+         MedHHInc = B19013_001, 
+         MedRent = B25058_001,
+         TotalPoverty = B06012_002)
+
+
+# Let's create new rate variables using mutate
+
+tracts09 <- 
+  tracts09 %>%
+  mutate(pctWhite = ifelse(TotalPop > 0, Whites / TotalPop, 0),
+         pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop), 0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
+         year = "2009") %>%
+  dplyr::select(-Whites,-FemaleBachelors,-MaleBachelors,-TotalPoverty)
+```
+### 2020 Census Data
+
+Notice that we are getting "wide" data here in the first place This
+saves us the trouble of using "spread". We do this by using the
+`output="wide"` argument to `get_acs()`. IN previous code chunks we
+split the use of `get_acs()` to download the data from the use of
+`mutate()` and other {dplyr} functions. Here we put the entire process
+into one continuous sequence of code using the "pipe" operator `%>%`.
+
+```{r results='hide'}
+tracts20 <- 
+  get_acs(geography = "tract", 
+          variables = c("B25026_001E","B02001_002E",
+                        "B15001_050E","B15001_009E",
+                        "B19013_001E","B25058_001E",
+                        "B06012_002E"), 
+          year=2020, state=06, county=075, 
+          geometry=TRUE, output="wide") %>%
+  st_transform('EPSG:2229') %>%
+  rename(TotalPop = B25026_001E, 
+         Whites = B02001_002E,
+         FemaleBachelors = B15001_050E, 
+         MaleBachelors = B15001_009E,
+         MedHHInc = B19013_001E, 
+         MedRent = B25058_001E,
+         TotalPoverty = B06012_002E) %>%
+  dplyr::select(-NAME, -starts_with("B")) %>%
+  mutate(pctWhite = ifelse(TotalPop > 0, Whites / TotalPop,0),
+         pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop),0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
+         year = "2020") %>%
+  dplyr::select(-Whites, -FemaleBachelors, -MaleBachelors, -TotalPoverty) 
+```
+
+To combine the 2009 and 2020 data into the same data frame we use
+`rbind()`. The "r" in `rbind()` stands for "row". So this function
+"binds rows of two or more data frames". Similarity the `cbind()`
+function binds columns of data frames, but that function is not used in
+this lab.
+
+```{r}
+
+allTracts <- rbind(tracts09,tracts20)
+```
+
+### Wrangling Transit Open Data
+```{r}
+
+
+
+bartStops <- 
+  st_read("/Users/rui/Documents/GitHub/MUSA_508/BART_Station/BART_Station_0.shp") %>%
+    dplyr::select(Name, City) %>%
+    filter(City=="San Francisco") %>%
+  st_transform("EPSG:2229")
+  
+#test <-
+#  filter(muniStops, serviceplanningstoptype != "BZ" & serviceplanningstoptype!="FL" & serviceplanningstoptype!= "SP")
+  
+```
+
+Let's visualize it
+
+```{r}
+
+ggplot() + 
+  geom_sf(data=st_union(tracts09)) +
+  geom_sf(data=bartStops, 
+          show.legend = "point", size= 0.5) +
+  scale_colour_manual(values = c("orange","blue")) +
+  labs(title="Bart Stops", 
+       subtitle="San Francisco, CA", 
+       caption="Figure 2.5") +
+  mapTheme()
+```
+Let's do this in pieces to understand this hefty code chunk
+
+We put them in the same data frame... why?
+
+```{r}
+
+bartBuffers <- 
+  rbind(
+    st_buffer(bartStops, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
+      mutate(Legend = "Buffer") %>%
+      dplyr::select(Legend),
+    st_union(st_buffer(bartStops, 2640)) %>%
+      st_sf() %>%
+      mutate(Legend = "Unioned Buffer"))
+```
+
+
+Let's examine both buffers by making a "[small
+multiples](https://www.juiceanalytics.com/writing/better-know-visualization-small-multiples)"
+plot. This type of plot shows multiple views of the same data or
+geographic area. We accomplish this by using the `facet_wrap()`
+{ggplot2} function on the *Legend* column.
+
+```{r}
+ggplot() +
+  geom_sf(data=bartBuffers) +
+  geom_sf(data=bartStops, show.legend = "point", size = 0.5) +
+  facet_wrap(~Legend) + 
+  labs(caption = "Figure 2.6") +
+  mapTheme()
+```
+```{r}
+buffer <- filter(bartBuffers, Legend=="Unioned Buffer")
+```
+
+#### Spatial Clipping with `st_intersection()` on polygons
+
+```{r}
+clip <- 
+  st_intersection(buffer, tracts09) %>%
+  dplyr::select(TotalPop) %>%
+  mutate(Selection_Type = "Clip")
+```
+
+#### Spatial intersection with `st_intersects()` on polygons
+
+```{r spatialSelection}
+
+# Do a spatial selection to see which tracts touch the buffer
+
+# approach #1: sub-setting a spatial object with a spatial object using the '[' brackets.
+selection1 <- 
+  tracts09[buffer,] %>%
+  dplyr::select(TotalPop) %>%
+  mutate(Selection_Type = "Spatial Selection")
+
+# approach #2: using `st_intersects` as a verbose way to do approach #1
+selection2 <- tracts09[st_intersects(tracts09, buffer) %>% lengths > 0, ] %>%
+  dplyr::select(TotalPop) %>%
+  mutate(Selection_Type = "Spatial Selection")
+
+# approach #3: use `st_join` to do a spatial join and remove the non-intersecting polygons
+selection3 <- tracts09 %>% 
+  st_join(buffer, join = st_intersects) %>% 
+  filter(!is.na(Legend)) %>% 
+  dplyr::select(TotalPop) %>%
+  mutate(Selection_Type = "Spatial Intersects")
+```
+#### Spatial intersection with with `st_centroid()` on polygon centroids
+
+```{r}
+selectCentroids <-
+  st_centroid(tracts09)[buffer,] %>%
+  st_drop_geometry() %>%
+  left_join(., dplyr::select(tracts09, GEOID), by = "GEOID") %>%
+  st_sf() %>%
+  dplyr::select(TotalPop) %>%
+  mutate(Selection_Type = "Select by Centroids")
+```
+Plotting the results of each method
+
+```{r}
+intersections <- rbind(clip, selection1, selectCentroids)
+
+ggplot() +
+  geom_sf(data=intersections, aes(fill = TotalPop)) +
+  geom_sf(data=bartStops, show.legend = "point", size=0.5) +
+  scale_fill_viridis_c() +
+  facet_wrap(~Selection_Type) + 
+  mapTheme()
+```
+
+****
+### Indicator Maps
+
+We do our centroid joins as above, and then do a "disjoin" to get the
+ones that *don't* join, and add them all together. Do this operation and
+then examine it. What represents the joins/doesn't join dichotomy? Note
+that this contains a correct 2009-2020 inflation calculation
+
+```{r}
+allTracts.group <- 
+  rbind(
+    st_centroid(allTracts)[buffer,] %>%
+      st_drop_geometry() %>%
+      left_join(allTracts) %>%
+      st_sf() %>%
+      mutate(TOD = "TOD"),
+    st_centroid(allTracts)[buffer, op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(allTracts) %>%
+      st_sf() %>%
+      mutate(TOD = "Non-TOD")) %>%
+  mutate(MedRent.inf = ifelse(year == "2009", MedRent * 1.14, MedRent)) 
+
+```
+
+Can you try to create the maps seen in the text? The solutions are
+contained in "map_exercise.R"
+
+### TOD Indicator Tables
+
+```{r}
+allTracts.Summary <- 
+  st_drop_geometry(allTracts.group) %>%
+  group_by(year, TOD) %>%
+  summarize(Rent = mean(MedRent, na.rm = T),
+            Population = mean(TotalPop, na.rm = T),
+            Percent_White = mean(pctWhite, na.rm = T),
+            Percent_Bach = mean(pctBachelors, na.rm = T),
+            Percent_Poverty = mean(pctPoverty, na.rm = T))
+
+kable(allTracts.Summary) %>%
+  kable_styling() %>%
+  footnote(general_title = "\n",
+           general = "Table 2.2")
+```
+
+Let's make some comparisons and speculate about the willingness to pay
+and demographics in these areas 2009-2020 (see the 2000 data in the text
+too)
+
+Notice how we pipe the kable() command here
+
+```{r}
+allTracts.Summary %>%
+  unite(year.TOD, year, TOD, sep = ": ", remove = T) %>%
+  gather(Variable, Value, -year.TOD) %>%
+  mutate(Value = round(Value, 2)) %>%
+  spread(year.TOD, Value) %>%
+  kable() %>%
+  kable_styling() %>%
+  footnote(general_title = "\n",
+           general = "Table 2.3")
+```
+
+### TOD Indicator Plots
+
+Let's create small multiple plots We use the "gather" command (look this
+one up please) To go from wide to long Why do we do this?? Notice we can
+"pipe" a ggplot call right into this operation!
+
+```{r}
+allTracts.Summary %>%
+  gather(Variable, Value, -year, -TOD) %>%
+  ggplot(aes(year, Value, fill = TOD)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Variable, scales = "free", ncol=5) +
+  scale_fill_manual(values = c("#bae4bc", "#0868ac")) +
+  labs(title = "Indicator differences across time and space") +
+  plotTheme() + theme(legend.position="bottom")
 ```
 
