@@ -29,16 +29,32 @@ options(scipen=999)
 options(tigris_class = "sf")
 
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+mapTheme2 <- function(base_size = 20, title_size = 16) {
+  theme(
+    text = element_text( color = "black"),
+    plot.title = element_text(size = title_size,colour = "black"),
+    plot.subtitle=element_text(face="italic"),
+    plot.caption=element_text(hjust=0),
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", fill=NA, size=2),
+    strip.text.x = element_text(size = 14))
+}
+
 
 palette5 <- c("#f0f9e8","#bae4bc","#7bccc4","#43a2ca","#0868ac")
 ```
 
-```{r load_key, warning = FALSE, eval = FALSE}
+```{r load_key, warning = FALSE, eval = FALSE,  message = FALSE}
 census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite = TRUE, install = TRUE)
 ```
 
 
-```{r results='hide'}
+```{r results='hide',  message = FALSE}
 tracts09 <-  
   get_acs(geography = "tract",
           variables = c("B25026_001E","B02001_002E",
@@ -51,7 +67,7 @@ tracts09 <-
 ```
 
 
-```{r}
+```{r  message = FALSE}
 glimpse(tracts09)
 ```
 
@@ -59,16 +75,19 @@ glimpse(tracts09)
 
 We create a new data frame consisting only of population
 
-```{r}
+```{r  message = FALSE, eval=FALSE}
 
 totalPop09 <-
   tracts09 %>%
   filter(variable == "B25026_001")
+totalPop09 <-
+  totalPop09%>%
+  filter(GEOID != "06075060400")
 ```
 
 Ways to examine the data
 
-```{r}
+```{r eval=FALSE, message=FALSE, include=FALSE}
 nrow(totalPop09)
 
 names(totalPop09)
@@ -89,7 +108,7 @@ Consult the textbook to understand the symbology schemes.
 (Note: the `qBr()` function used here is an update to the one used
 version used in the text book so the results may appear different.)
 
-```{r}
+```{r  message = FALSE}
 A <- 
   ggplot() +
   geom_sf(data = totalPop09, aes(fill = estimate)) +
@@ -128,7 +147,7 @@ new features out of the existing columns. These are all steps we had
 introduced in Lab 1, except here we are doing it on {sf} spatial data
 frames.
 
-```{r}
+```{r  message = FALSE}
 # Let's "spread" the data into wide form
 
 tracts09 <- 
@@ -152,7 +171,9 @@ tracts09 <-
          pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop), 0),
          pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
          year = "2009") %>%
-  dplyr::select(-Whites,-FemaleBachelors,-MaleBachelors,-TotalPoverty)
+  dplyr::select(-Whites,-FemaleBachelors,-MaleBachelors,-TotalPoverty) %>%
+  filter(GEOID != "06075060400")
+  
 ```
 ### 2020 Census Data
 
@@ -163,7 +184,7 @@ split the use of `get_acs()` to download the data from the use of
 `mutate()` and other {dplyr} functions. Here we put the entire process
 into one continuous sequence of code using the "pipe" operator `%>%`.
 
-```{r results='hide'}
+```{r results='hide' , message = FALSE}
 tracts20 <- 
   get_acs(geography = "tract", 
           variables = c("B25026_001E","B02001_002E",
@@ -185,7 +206,9 @@ tracts20 <-
          pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop),0),
          pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
          year = "2020") %>%
-  dplyr::select(-Whites, -FemaleBachelors, -MaleBachelors, -TotalPoverty) 
+  dplyr::select(-Whites, -FemaleBachelors, -MaleBachelors, -TotalPoverty) %>%
+  filter(GEOID != "06075060400" & GEOID != "06075980401")
+
 ```
 
 To combine the 2009 and 2020 data into the same data frame we use
@@ -194,13 +217,12 @@ To combine the 2009 and 2020 data into the same data frame we use
 function binds columns of data frames, but that function is not used in
 this lab.
 
-```{r}
-
+```{r  message = FALSE}
 allTracts <- rbind(tracts09,tracts20)
 ```
 
 ### Wrangling Transit Open Data
-```{r}
+```{r  message = FALSE}
 
 
 
@@ -217,10 +239,10 @@ bartStops <-
 
 Let's visualize it
 
-```{r}
+```{r  message = FALSE}
 
 ggplot() + 
-  geom_sf(data=st_union(tracts09)) +
+  geom_sf(data=st_union(allTracts)) +
   geom_sf(data=bartStops, 
           show.legend = "point", size= 0.5) +
   scale_colour_manual(values = c("orange","blue")) +
@@ -402,3 +424,113 @@ allTracts.Summary %>%
   plotTheme() + theme(legend.position="bottom")
 ```
 
+```{r}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = TotalPop),size = 0.1) +
+    labs(title = "Time/Space Groups") +
+    geom_sf(data = selectCentroids, fill = "transparent", color = "red", size = 0.3)+
+    facet_wrap(~year)+
+    mapTheme2() + 
+    theme(plot.title = element_text(size=22))
+
+```
+
+```{r}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = pctBachelors),size = 0.1) +
+    labs(title = "Time/Space Groups") +
+    facet_wrap(~year)+
+    geom_sf(data = buffer, fill = "transparent", color = "red")+
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+
+```
+
+
+
+
+```{r}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = pctPoverty),size = 0.1) +
+    labs(title = "Time/Space Groups") +
+    geom_sf(data = buffer, fill = "transparent", color = "red")+
+    facet_wrap(~year)+
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+
+```
+
+
+
+```{r}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = pctWhite),size = 0.1) +
+    labs(title = "Time/Space Groups") +
+    geom_sf(data = buffer, fill = "transparent", color = "red")+
+    facet_wrap(~year)+
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+
+```
+
+
+
+```{r}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = MedRent),size = 0.1) +
+    labs(title = "Time/Space Groups") +
+    geom_sf(data = buffer, fill = "transparent", color = "red")+
+    facet_wrap(~year)+
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+
+```
+
+
+
+```{r}
+myData  <- rbind(selectCentroids, clip) %>%
+  rbind(., selection1)
+
+ggplot(myData)+
+  geom_sf(data = st_union(tracts09))+
+  geom_sf(aes(fill = q5(TotalPop))) +
+  scale_fill_manual(values = palette5,
+                    labels = qBr(myData, "TotalPop"),
+                    name = "Popluation\n(Quintile Breaks)") +
+  labs(title = "Total Population", subtitle = "Philadelphia; 2009") +
+  facet_wrap(~Selection_Type)+
+  mapTheme() + 
+  theme(plot.title = element_text(size=22))
+```
+  
+  # 1.3.1 Maps
+```{r}
+  ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = TOD)) +
+    labs(title = "Time/Space Groups") +
+    facet_wrap(~year)+
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+```
+
+
+```{r}
+ggplot(allTracts.group)+
+  #geom_sf(data = st_union(tracts09))+
+  geom_sf(aes(fill = q5(MedRent.inf))) +
+  geom_sf(data = buffer, fill = "transparent", color = "red")+
+  scale_fill_manual(values = palette5,
+                    labels = qBr(allTracts.group, "MedRent.inf"),
+                    name = "Rent\n(Quintile Breaks)") +
+  labs(title = "Median Rent 2009-2020", subtitle = "Real Dollars") +
+  facet_wrap(~year)+
+  mapTheme() + 
+  theme(plot.title = element_text(size=22))
+```
