@@ -429,7 +429,7 @@ ggplot(allTracts.group)+
     #geom_sf(data = st_union(tracts09))+
     geom_sf(aes(fill = TotalPop),size = 0.1) +
     labs(title = "Time/Space Groups") +
-    geom_sf(data = selectCentroids, fill = "transparent", color = "red", size = 0.3)+
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
     facet_wrap(~year)+
     mapTheme2() + 
     theme(plot.title = element_text(size=22))
@@ -441,8 +441,8 @@ ggplot(allTracts.group)+
     #geom_sf(data = st_union(tracts09))+
     geom_sf(aes(fill = pctBachelors),size = 0.1) +
     labs(title = "Time/Space Groups") +
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
     facet_wrap(~year)+
-    geom_sf(data = buffer, fill = "transparent", color = "red")+
     mapTheme() + 
     theme(plot.title = element_text(size=22))
 
@@ -456,7 +456,7 @@ ggplot(allTracts.group)+
     #geom_sf(data = st_union(tracts09))+
     geom_sf(aes(fill = pctPoverty),size = 0.1) +
     labs(title = "Time/Space Groups") +
-    geom_sf(data = buffer, fill = "transparent", color = "red")+
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
     facet_wrap(~year)+
     mapTheme() + 
     theme(plot.title = element_text(size=22))
@@ -470,7 +470,7 @@ ggplot(allTracts.group)+
     #geom_sf(data = st_union(tracts09))+
     geom_sf(aes(fill = pctWhite),size = 0.1) +
     labs(title = "Time/Space Groups") +
-    geom_sf(data = buffer, fill = "transparent", color = "red")+
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
     facet_wrap(~year)+
     mapTheme() + 
     theme(plot.title = element_text(size=22))
@@ -484,7 +484,7 @@ ggplot(allTracts.group)+
     #geom_sf(data = st_union(tracts09))+
     geom_sf(aes(fill = MedRent),size = 0.1) +
     labs(title = "Time/Space Groups") +
-    geom_sf(data = buffer, fill = "transparent", color = "red")+
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
     facet_wrap(~year)+
     mapTheme() + 
     theme(plot.title = element_text(size=22))
