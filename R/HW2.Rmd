@@ -1,7 +1,7 @@
 ---
-title: "Jiang_RuiHW2"
+title: "Transit-Oriented Development in San Francisco, CA - MUSA508 HW2"
 author: "Rui Jiang"
-date: '2022-09-17'
+date: '2022-09-21'
 output: 
   html_document:
     toc: true
@@ -12,11 +12,24 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-# Policy Brief
 
-### Load packages and functions
+# Policy Brief for San Francisco Council Representatives
 
-```{r setup_packages, warning = FALSE, message = FALSE}
+```{r thanks, include=TRUE, warning=FALSE, message=FALSE, results='hide'}
+## Thanks for the helps and supports from Professor Michael Fichman, Jingyi Cai, Chenxi Zhu, Tiffany Luo, and Teresa Chang.
+```
+
+## Motivation
+The exciting, quickly expanding trend of transit-oriented development helps to build thriving, livable, and sustainable communities. It is developing dense, walkable, pedestrian-oriented, mixed-use towns built on first-rate train networks, also known as TOD. Because of this, it is feasible to live a less stressful life without entirely relying on an automobile for transportation and survival.
+
+Transit-oriented development combines regional planning, urban redevelopment, suburban rejuvenation, and walkable community development. This Policy Brief will evaluate how households value transit-rich neighborhoods in San Francisco, CA. 
+
+The Farallon Islands of northern California are one of the world's great biodiversity hotspots. They are off limits to humans. Even though they're included in census tracts of San Francisco, they will not be considered in this evaluation.
+
+## 1. Data Wrangling
+
+#### 1.1 Load Packages and Functions
+```{r setup_packages, warning = FALSE, message = FALSE, results='hide'}
 # Load Libraries
 
 library(tidyverse)
@@ -45,16 +58,15 @@ mapTheme2 <- function(base_size = 20, title_size = 16) {
     strip.text.x = element_text(size = 14))
 }
 
-
 palette5 <- c("#f0f9e8","#bae4bc","#7bccc4","#43a2ca","#0868ac")
-```
-
-```{r load_key, warning = FALSE, eval = FALSE,  message = FALSE}
+palette_purple <- c("#54278f","#756bb1","#9e9ac8","#cbc9e2","#f2f0f7")
+palette_green <- c("006d2c","31a354","74c476","bae4b3","edf8e9")
 census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite = TRUE, install = TRUE)
 ```
 
+#### 1.2 Wrangling 2009 Census Data
 
-```{r results='hide',  message = FALSE}
+```{r wrangling2009 , results='hide',  message = FALSE}
 tracts09 <-  
   get_acs(geography = "tract",
           variables = c("B25026_001E","B02001_002E",
@@ -64,91 +76,13 @@ tracts09 <-
           year=2009, state= "CA", #06
           county="San Francisco", geometry=TRUE) %>%  #075
   st_transform('EPSG:2229')
-```
-
-
-```{r  message = FALSE}
-glimpse(tracts09)
-```
-
-
-
-We create a new data frame consisting only of population
-
-```{r  message = FALSE, eval=FALSE}
-
 totalPop09 <-
   tracts09 %>%
   filter(variable == "B25026_001")
 totalPop09 <-
   totalPop09%>%
   filter(GEOID != "06075060400")
-```
 
-Ways to examine the data
-
-```{r eval=FALSE, message=FALSE, include=FALSE}
-nrow(totalPop09)
-
-names(totalPop09)
-
-head(totalPop09)
-
-glimpse(totalPop09)
-```
-
-### Using ggplot to map census data with {sf}
-
-Each plot adds more and more nuance and information
-
-Examine each to see what we've added each time
-
-Consult the textbook to understand the symbology schemes.
-
-(Note: the `qBr()` function used here is an update to the one used
-version used in the text book so the results may appear different.)
-
-```{r  message = FALSE}
-A <- 
-  ggplot() +
-  geom_sf(data = totalPop09, aes(fill = estimate)) +
-  theme(
-    plot.title = element_text(size=22)
-    )
-
-B <- 
-  ggplot() +
-  geom_sf(data = totalPop09, aes(fill = q5(estimate))) +
-  theme(plot.title = element_text(size=22)) 
-
-C <-
-  ggplot() +
-  geom_sf(data = totalPop09, aes(fill = q5(estimate))) +
-  scale_fill_manual(values = palette5,
-                    labels = qBr(totalPop09, "estimate"),
-                    name = "Total\nPopluation\n(Quintile Breaks)") +
-  theme(plot.title = element_text(size=22))
-
-D <- 
-  ggplot() +
-  geom_sf(data = totalPop09, aes(fill = q5(estimate))) +
-  scale_fill_manual(values = palette5,
-                    labels = qBr(totalPop09, "estimate"),
-                    name = "Popluation\n(Quintile Breaks)") +
-  labs(title = "Total Population", subtitle = "Philadelphia; 2009") +
-  mapTheme() + 
-  theme(plot.title = element_text(size=22))
-```
-
-Here we will modify the 2009 ACS by using `spread()` to widen the data
-so that each census variable is now a column. We will use `rename()` to
-give sensible names to the columns and we will use `mutate()` to make
-new features out of the existing columns. These are all steps we had
-introduced in Lab 1, except here we are doing it on {sf} spatial data
-frames.
-
-```{r  message = FALSE}
-# Let's "spread" the data into wide form
 
 tracts09 <- 
   tracts09 %>%
@@ -173,18 +107,11 @@ tracts09 <-
          year = "2009") %>%
   dplyr::select(-Whites,-FemaleBachelors,-MaleBachelors,-TotalPoverty) %>%
   filter(GEOID != "06075060400")
-  
 ```
-### 2020 Census Data
 
-Notice that we are getting "wide" data here in the first place This
-saves us the trouble of using "spread". We do this by using the
-`output="wide"` argument to `get_acs()`. IN previous code chunks we
-split the use of `get_acs()` to download the data from the use of
-`mutate()` and other {dplyr} functions. Here we put the entire process
-into one continuous sequence of code using the "pipe" operator `%>%`.
+#### 1.3 Wrangling 2020 Census Data and Combine into the Same Data Frame
 
-```{r results='hide' , message = FALSE}
+```{r combine_census, message=FALSE, results='hide', warning = FALSE}
 tracts20 <- 
   get_acs(geography = "tract", 
           variables = c("B25026_001E","B02001_002E",
@@ -209,53 +136,34 @@ tracts20 <-
   dplyr::select(-Whites, -FemaleBachelors, -MaleBachelors, -TotalPoverty) %>%
   filter(GEOID != "06075060400" & GEOID != "06075980401")
 
-```
-
-To combine the 2009 and 2020 data into the same data frame we use
-`rbind()`. The "r" in `rbind()` stands for "row". So this function
-"binds rows of two or more data frames". Similarity the `cbind()`
-function binds columns of data frames, but that function is not used in
-this lab.
-
-```{r  message = FALSE}
 allTracts <- rbind(tracts09,tracts20)
+
 ```
 
-### Wrangling Transit Open Data
-```{r  message = FALSE}
+#### 1.4 Wrangling Transit Open Data
 
-
-
+```{r  bartStops, message = FALSE, warning = FALSE, results='hide'}
 bartStops <- 
   st_read("/Users/rui/Documents/GitHub/MUSA_508/BART_Station/BART_Station_0.shp") %>%
     dplyr::select(Name, City) %>%
     filter(City=="San Francisco") %>%
   st_transform("EPSG:2229")
-  
-#test <-
-#  filter(muniStops, serviceplanningstoptype != "BZ" & serviceplanningstoptype!="FL" & serviceplanningstoptype!= "SP")
-  
+# view bart stops
+#ggplot() + 
+  #geom_sf(data=st_union(allTracts)) +
+  #geom_sf(data=bartStops, 
+          #show.legend = "point", size= 0.5) +
+  #scale_colour_manual(values = c("orange","blue")) +
+  #labs(title="Bart Stops", 
+       #subtitle="San Francisco, CA", 
+       #caption="Figure 2.5") +
+  #mapTheme()
+
 ```
 
-Let's visualize it
+#### 1.5 Buffer the BART Stops
 
-```{r  message = FALSE}
-
-ggplot() + 
-  geom_sf(data=st_union(allTracts)) +
-  geom_sf(data=bartStops, 
-          show.legend = "point", size= 0.5) +
-  scale_colour_manual(values = c("orange","blue")) +
-  labs(title="Bart Stops", 
-       subtitle="San Francisco, CA", 
-       caption="Figure 2.5") +
-  mapTheme()
-```
-Let's do this in pieces to understand this hefty code chunk
-
-We put them in the same data frame... why?
-
-```{r}
+```{r bufferstops, warning=FALSE, message=FALSE}
 
 bartBuffers <- 
   rbind(
@@ -265,93 +173,14 @@ bartBuffers <-
     st_union(st_buffer(bartStops, 2640)) %>%
       st_sf() %>%
       mutate(Legend = "Unioned Buffer"))
-```
 
-
-Let's examine both buffers by making a "[small
-multiples](https://www.juiceanalytics.com/writing/better-know-visualization-small-multiples)"
-plot. This type of plot shows multiple views of the same data or
-geographic area. We accomplish this by using the `facet_wrap()`
-{ggplot2} function on the *Legend* column.
-
-```{r}
-ggplot() +
-  geom_sf(data=bartBuffers) +
-  geom_sf(data=bartStops, show.legend = "point", size = 0.5) +
-  facet_wrap(~Legend) + 
-  labs(caption = "Figure 2.6") +
-  mapTheme()
-```
-```{r}
 buffer <- filter(bartBuffers, Legend=="Unioned Buffer")
+
 ```
 
-#### Spatial Clipping with `st_intersection()` on polygons
+## 2. Comparison of Four Selected Census Variables across 2009 to 2020 and TOD vs. non-TOD.
 
-```{r}
-clip <- 
-  st_intersection(buffer, tracts09) %>%
-  dplyr::select(TotalPop) %>%
-  mutate(Selection_Type = "Clip")
-```
-
-#### Spatial intersection with `st_intersects()` on polygons
-
-```{r spatialSelection}
-
-# Do a spatial selection to see which tracts touch the buffer
-
-# approach #1: sub-setting a spatial object with a spatial object using the '[' brackets.
-selection1 <- 
-  tracts09[buffer,] %>%
-  dplyr::select(TotalPop) %>%
-  mutate(Selection_Type = "Spatial Selection")
-
-# approach #2: using `st_intersects` as a verbose way to do approach #1
-selection2 <- tracts09[st_intersects(tracts09, buffer) %>% lengths > 0, ] %>%
-  dplyr::select(TotalPop) %>%
-  mutate(Selection_Type = "Spatial Selection")
-
-# approach #3: use `st_join` to do a spatial join and remove the non-intersecting polygons
-selection3 <- tracts09 %>% 
-  st_join(buffer, join = st_intersects) %>% 
-  filter(!is.na(Legend)) %>% 
-  dplyr::select(TotalPop) %>%
-  mutate(Selection_Type = "Spatial Intersects")
-```
-#### Spatial intersection with with `st_centroid()` on polygon centroids
-
-```{r}
-selectCentroids <-
-  st_centroid(tracts09)[buffer,] %>%
-  st_drop_geometry() %>%
-  left_join(., dplyr::select(tracts09, GEOID), by = "GEOID") %>%
-  st_sf() %>%
-  dplyr::select(TotalPop) %>%
-  mutate(Selection_Type = "Select by Centroids")
-```
-Plotting the results of each method
-
-```{r}
-intersections <- rbind(clip, selection1, selectCentroids)
-
-ggplot() +
-  geom_sf(data=intersections, aes(fill = TotalPop)) +
-  geom_sf(data=bartStops, show.legend = "point", size=0.5) +
-  scale_fill_viridis_c() +
-  facet_wrap(~Selection_Type) + 
-  mapTheme()
-```
-
-****
-### Indicator Maps
-
-We do our centroid joins as above, and then do a "disjoin" to get the
-ones that *don't* join, and add them all together. Do this operation and
-then examine it. What represents the joins/doesn't join dichotomy? Note
-that this contains a correct 2009-2020 inflation calculation
-
-```{r}
+```{r compare_totalpop, warning = FALSE, message = FALSE}
 allTracts.group <- 
   rbind(
     st_centroid(allTracts)[buffer,] %>%
@@ -366,14 +195,6 @@ allTracts.group <-
       mutate(TOD = "Non-TOD")) %>%
   mutate(MedRent.inf = ifelse(year == "2009", MedRent * 1.14, MedRent)) 
 
-```
-
-Can you try to create the maps seen in the text? The solutions are
-contained in "map_exercise.R"
-
-### TOD Indicator Tables
-
-```{r}
 allTracts.Summary <- 
   st_drop_geometry(allTracts.group) %>%
   group_by(year, TOD) %>%
@@ -383,19 +204,93 @@ allTracts.Summary <-
             Percent_Bach = mean(pctBachelors, na.rm = T),
             Percent_Poverty = mean(pctPoverty, na.rm = T))
 
-kable(allTracts.Summary) %>%
-  kable_styling() %>%
-  footnote(general_title = "\n",
-           general = "Table 2.2")
+selectCentroids <-
+  st_centroid(tracts09)[buffer,] %>%
+  st_drop_geometry() %>%
+  left_join(., dplyr::select(tracts09, GEOID), by = "GEOID") %>%
+  st_sf() %>%
+  dplyr::select(TotalPop) %>%
+  mutate(Selection_Type = "Select by Centroids")
+
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = TotalPop),size = 0.1) +
+    labs(title = "Figure 2.1 Comparison of Total Population", 
+         subtitle = "across 2009 to 2020 and TOD (red line) vs. non-TOD in San Francisco") +
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
+    facet_wrap(~year)+
+    scale_fill_viridis_c() +
+    mapTheme2() + 
+    theme(plot.title = element_text(size=22))
+```
+```{r compare_bachelors, warning = FALSE, message = FALSE}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = pctBachelors),size = 0.1) +
+    labs(title = "Figure 2.2 Comparison of Percent Bachelor", 
+         subtitle = "across 2009 to 2020 and TOD (red line) vs. non-TOD in San Francisco") +
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
+    facet_wrap(~year)+
+    scale_fill_viridis_c() +
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+
+```
+```{r compare_poverty, warning = FALSE, message = FALSE}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = pctPoverty),size = 0.1) +
+    labs(title = "Figure 2.3 Comparison of Percent Poverty", 
+         subtitle = "across 2009 to 2020 and TOD (red line) vs. non-TOD in San Francisco") +
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
+    facet_wrap(~year)+
+    scale_fill_viridis_c() +
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+
+```
+```{r compare_white, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = pctWhite),size = 0.1) +
+    labs(title = "Time/Space Groups") +
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
+    facet_wrap(~year)+
+    scale_fill_viridis_c() +
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+```
+```{r compare_rent, warning = FALSE, message = FALSE}
+ggplot(allTracts.group)+
+    #geom_sf(data = st_union(tracts09))+
+    geom_sf(aes(fill = MedRent),size = 0.1) +
+    labs(title = "Figure 2.4 Comparison of Rent", 
+         subtitle = "across 2009 to 2020 and TOD (red line) vs. non-TOD in San Francisco") +
+    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
+    facet_wrap(~year)+
+    scale_fill_viridis_c() +
+    mapTheme() + 
+    theme(plot.title = element_text(size=22))
+
 ```
 
-Let's make some comparisons and speculate about the willingness to pay
-and demographics in these areas 2009-2020 (see the 2000 data in the text
-too)
+## 3.TOD Indicator Plots
 
-Notice how we pipe the kable() command here
+```{r TODindicatorPlots, warning = FALSE, message = FALSE}
+allTracts.Summary %>%
+  gather(Variable, Value, -year, -TOD) %>%
+  ggplot(aes(year, Value, fill = TOD)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Variable, scales = "free", ncol=5) +
+  scale_fill_manual(values = c("#bae4bc", "#0868ac")) +
+  labs(title = "Figure 3.1 Comparison of Census variables",
+       subtitle = "across 2009 to 2020 and TOD vs. non-TOD in San Francisco") +
+  plotTheme() + theme(legend.position="bottom")
+```
 
-```{r}
+## 4. Table Comparison across Time and Space
+
+```{r table_comparison, warning=FALSE, message = FALSE}
 allTracts.Summary %>%
   unite(year.TOD, year, TOD, sep = ": ", remove = T) %>%
   gather(Variable, Value, -year.TOD) %>%
@@ -404,132 +299,168 @@ allTracts.Summary %>%
   kable() %>%
   kable_styling() %>%
   footnote(general_title = "\n",
-           general = "Table 2.3")
-```
-
-### TOD Indicator Plots
-
-Let's create small multiple plots We use the "gather" command (look this
-one up please) To go from wide to long Why do we do this?? Notice we can
-"pipe" a ggplot call right into this operation!
-
-```{r}
-allTracts.Summary %>%
-  gather(Variable, Value, -year, -TOD) %>%
-  ggplot(aes(year, Value, fill = TOD)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  facet_wrap(~Variable, scales = "free", ncol=5) +
-  scale_fill_manual(values = c("#bae4bc", "#0868ac")) +
-  labs(title = "Indicator differences across time and space") +
-  plotTheme() + theme(legend.position="bottom")
-```
-
-```{r}
-ggplot(allTracts.group)+
-    #geom_sf(data = st_union(tracts09))+
-    geom_sf(aes(fill = TotalPop),size = 0.1) +
-    labs(title = "Time/Space Groups") +
-    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
-    facet_wrap(~year)+
-    mapTheme2() + 
-    theme(plot.title = element_text(size=22))
+           general = "Table 4.1 Comparison of Census variables across 2009 to 2020 and TOD vs. non-TOD")
 
 ```
+From Figure 2.1 - 2.4, 3.1, & Table 4.1\
+- There is an overall increase in education levels in 2020 compared to 2009, but the impact of TOD cannot be directly analyzed.\
+- Poverty levels in 2020 are one percentage point lower than in 2009 in both TOD and non-TOD areas overall, with TOD areas having higher poverty levels than non-TOD areas in both 2009 and 2020.\
+- The proportion of whites in TOD areas has fallen more than in non-TOD areas.\
+- The total population decreased from 2009 to 2020, TOD areas decreased more than Non-TOD areas.\
+- There is an overall increase in rent price in 2020 compared to 2009. TOD areas in 2020 had lower average rent prices than Non-TOD areas.
 
-```{r}
-ggplot(allTracts.group)+
-    #geom_sf(data = st_union(tracts09))+
-    geom_sf(aes(fill = pctBachelors),size = 0.1) +
-    labs(title = "Time/Space Groups") +
-    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
-    facet_wrap(~year)+
-    mapTheme() + 
-    theme(plot.title = element_text(size=22))
+## 5. Graduated Symbol Maps of Population and Rent within 0.5 mile of each Transit Station.
+
+```{r g_symbol_map_population,warning = FALSE, message = FALSE}
+# Generate point centers
+bart_Buffers <-
+  rbind(
+    st_buffer(bartStops, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
+      mutate(Legend = "Buffer") %>%
+      dplyr::select(Legend,Name))
+
+buffer_info09 <- 
+  st_intersection(bart_Buffers, tracts09) %>%
+  dplyr::select(TotalPop,MedRent,Name) %>%
+  mutate(year = 2009)
+
+buffer_info20 <- 
+  st_intersection(bart_Buffers, tracts20) %>%
+  dplyr::select(TotalPop,MedRent,Name) %>%
+  mutate(year = 2020)
+
+buffer_info <- rbind(buffer_info09, buffer_info20)
+
+buffer_final <- buffer_info %>%
+  group_by(Name,year) %>%
+  summarize("MedRent" = mean(MedRent),
+            "TotalPop" = sum(TotalPop))
+
+centers <- st_centroid(buffer_final)
+# Set size parameter and the size range for population
+ggplot() + 
+  geom_sf(data = tracts09, fill = "white") + 
+  geom_sf(data = tracts20, fill = "white") + 
+  geom_sf(data = centers, aes(size = TotalPop,fill = TotalPop,alpha = 1),shape = 21, 
+          show.legend = "point") + 
+  labs(title = "Graduated Symbol Maps of Population within 0.5 Nile of Each Transit Station", 
+       subtitle = "San Francisco, CA",
+       caption="Figure 5.1") +
+  guides(alpha = FALSE)+
+  guides(size = FALSE)+
+  scale_fill_viridis_c() +
+  facet_wrap(~year)+
+  geom_sf(data = bartStops, size = 0.4) +
+  scale_size_continuous(range = c(0.1, 15))
+```
+
+Sum of the population has no meaning which will lead to overpopulation in these maps. These maps try to show the population related to each transit station.
+
+```{r g_symbol_map_rent, warning = FALSE, message = FALSE}
+# Set size parameter and the size range for rent
+ggplot() + 
+  
+  geom_sf(data = tracts09, fill = "white") + 
+  geom_sf(data = tracts20, fill = "white") + 
+  geom_sf(data = centers, aes(size = MedRent,fill = MedRent,alpha = 0.1), shape = 21, 
+          show.legend = "point") + 
+  labs(title = "Graduated Symbol Maps of Rent within 0.5 Nile of Each Transit Station", 
+       subtitle = "San Francisco, CA",
+       caption="Figure 5.2") +
+  guides(alpha = FALSE)+
+  guides(size = FALSE)+
+  scale_fill_viridis_c() +
+  facet_wrap(~year)+
+  geom_sf(data = bartStops, size= 0.4) +
+  scale_size_continuous(range = c(1, 15))
+```
+
+## 6. Mean Rent as a Function of Distance to BART Transit Stations
+
+```{r geomline_rent_distance, warning = FALSE, message = FALSE}
+allTracts <- rbind(tracts20,tracts09)
+bart_MRB <- multipleRingBuffer(st_union(bartStops), 47520, 2640)
+
+allTracts.rings <-
+  st_join(st_centroid(dplyr::select(allTracts, GEOID, year)),
+          bart_MRB) %>%
+  st_drop_geometry() %>%
+  left_join(dplyr::select(allTracts, GEOID, MedRent, year), 
+            by=c("GEOID"="GEOID", "year"="year")) %>%
+  st_sf() %>%
+  mutate(distance = distance / 5280) #convert to miles
+
+tract.group <- allTracts.rings %>%
+  group_by(distance,year) %>%
+  summarize("AveRent" = mean(MedRent,na.rm = TRUE))
+
+ggplot(data=tract.group, aes(distance,AveRent, colour=year)) +
+    geom_line(size = 2) +
+    labs(title = "Average Rent of Different Distance to BART Transit Stations", 
+         subtitle = "San Francisco, CA",
+         caption="Figure 6.1") 
 
 ```
 
+Both Figure 5.2 and Figure 6.1 indicate the rent price dramatically increased from 2009 to 2020.
+
+## 7. Conlcusion
+Even though it seems that people in San Francisco are not willing to pay a premium to live in transit-rich areas, not enough has been done to terminate this conclusion fully. Households in San Francisco might be willing to pay more for transit amenities, but they also pay more for other amenities in neighborhoods that happen to be less transit-rich. For example, households may value locations inside or near parks (or other green facilities).
+
+Rent prices dramatically increased from 2009 to 2020. There should be factors for residents to consider when they purchase or rent living places. These results in this study suggest a more thorough study is needed to learn more about how renters value transit.
 
 
 
-```{r}
-ggplot(allTracts.group)+
-    #geom_sf(data = st_union(tracts09))+
-    geom_sf(aes(fill = pctPoverty),size = 0.1) +
-    labs(title = "Time/Space Groups") +
-    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
-    facet_wrap(~year)+
-    mapTheme() + 
-    theme(plot.title = element_text(size=22))
 
-```
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 
+# Do a spatial selection to see which tracts touch the buffer
 
+# approach #1: sub-setting a spatial object with a spatial object using the '[' brackets.
+selectionPop09 <- 
+  tracts09[buffer,] %>%
+  dplyr::select(TotalPop) %>%
+  mutate(year = 2009)
 
-```{r}
-ggplot(allTracts.group)+
-    #geom_sf(data = st_union(tracts09))+
-    geom_sf(aes(fill = pctWhite),size = 0.1) +
-    labs(title = "Time/Space Groups") +
-    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
-    facet_wrap(~year)+
-    mapTheme() + 
-    theme(plot.title = element_text(size=22))
+selectionPop20 <- 
+  tracts20[buffer,] %>%
+  dplyr::select(TotalPop) %>%
+  mutate(year = 2020)
 
-```
+selectionPop  <- rbind(selectionPop09, selectionPop20)
 
-
-
-```{r}
-ggplot(allTracts.group)+
-    #geom_sf(data = st_union(tracts09))+
-    geom_sf(aes(fill = MedRent),size = 0.1) +
-    labs(title = "Time/Space Groups") +
-    geom_sf(data = st_union(selectCentroids), fill = "transparent", color = "red", size = 0.3)+
-    facet_wrap(~year)+
-    mapTheme() + 
-    theme(plot.title = element_text(size=22))
-
-```
-
-
-
-```{r}
-myData  <- rbind(selectCentroids, clip) %>%
-  rbind(., selection1)
-
-ggplot(myData)+
-  geom_sf(data = st_union(tracts09))+
+ggplot(selectionPop)+
+  geom_sf(data = st_union(tracts20))+
   geom_sf(aes(fill = q5(TotalPop))) +
-  scale_fill_manual(values = palette5,
-                    labels = qBr(myData, "TotalPop"),
+  geom_sf(data=bartStops, show.legend = "point", size = 1) +
+  scale_fill_manual(values = palette_purple,
+                    labels = qBr(selectionPop, "TotalPop"),
                     name = "Popluation\n(Quintile Breaks)") +
   labs(title = "Total Population", subtitle = "Philadelphia; 2009") +
-  facet_wrap(~Selection_Type)+
+  facet_wrap(~year)+
   mapTheme() + 
   theme(plot.title = element_text(size=22))
-```
-  
-  # 1.3.1 Maps
-```{r}
-  ggplot(allTracts.group)+
-    #geom_sf(data = st_union(tracts09))+
-    geom_sf(aes(fill = TOD)) +
-    labs(title = "Time/Space Groups") +
-    facet_wrap(~year)+
-    mapTheme() + 
-    theme(plot.title = element_text(size=22))
-```
 
+selectionRent09 <- 
+  tracts09[buffer,] %>%
+  dplyr::select(MedRent) %>%
+  mutate(year=2009)
 
-```{r}
-ggplot(allTracts.group)+
-  #geom_sf(data = st_union(tracts09))+
-  geom_sf(aes(fill = q5(MedRent.inf))) +
-  geom_sf(data = buffer, fill = "transparent", color = "red")+
-  scale_fill_manual(values = palette5,
-                    labels = qBr(allTracts.group, "MedRent.inf"),
+selectionRent20 <- 
+  tracts20[buffer,] %>%
+  dplyr::select(MedRent) %>%
+  mutate(year=2020)
+
+selectionRent  <- rbind(selectionRent09, selectionRent20)
+
+ggplot(selectionRent)+
+  geom_sf(data = st_union(tracts20))+
+  geom_sf(aes(fill = q5(MedRent))) +
+  geom_sf(data=bartStops, show.legend = "point", size = 1) +
+  scale_fill_manual(values = palette_green,
+                    labels = qBr(selectionRent, "MedRent"),
                     name = "Rent\n(Quintile Breaks)") +
-  labs(title = "Median Rent 2009-2020", subtitle = "Real Dollars") +
+  labs(title = "Rent", subtitle = "Philadelphia; 2009") +
   facet_wrap(~year)+
   mapTheme() + 
   theme(plot.title = element_text(size=22))
