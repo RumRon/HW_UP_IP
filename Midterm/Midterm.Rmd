@@ -1,0 +1,15 @@
+---
+title: "Predicting Housing Prices for Mecklenberg County, NC - MUSA508 Midterm"
+author: "Rui Jiang, Jingyi Cai"
+date: '2022-09-25'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup}
+#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+```
