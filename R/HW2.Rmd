@@ -260,6 +260,7 @@ ggplot(allTracts.group)+
     mapTheme() + 
     theme(plot.title = element_text(size=22))
 ```
+
 ```{r compare_rent, warning = FALSE, message = FALSE}
 ggplot(allTracts.group)+
     #geom_sf(data = st_union(tracts09))+
@@ -333,7 +334,7 @@ buffer_info <- rbind(buffer_info09, buffer_info20)
 
 buffer_final <- buffer_info %>%
   group_by(Name,year) %>%
-  summarize("MedRent" = mean(MedRent),
+  summarize("MedRent" = mean(MedRent,na.rm = TRUE),
             "TotalPop" = sum(TotalPop))
 
 centers <- st_centroid(buffer_final)
@@ -343,7 +344,7 @@ ggplot() +
   geom_sf(data = tracts20, fill = "white") + 
   geom_sf(data = centers, aes(size = TotalPop,fill = TotalPop,alpha = 1),shape = 21, 
           show.legend = "point") + 
-  labs(title = "Graduated Symbol Maps of Population within 0.5 Nile of Each Transit Station", 
+  labs(title = "Graduated Symbol Maps of Population within 0.5 Mile of Each Transit Station", 
        subtitle = "San Francisco, CA",
        caption="Figure 5.1") +
   guides(alpha = FALSE)+
@@ -362,9 +363,9 @@ ggplot() +
   
   geom_sf(data = tracts09, fill = "white") + 
   geom_sf(data = tracts20, fill = "white") + 
-  geom_sf(data = centers, aes(size = MedRent,fill = MedRent,alpha = 0.1), shape = 21, 
+  geom_sf(data = centers, aes(size = MedRent,fill = MedRent,alpha = 1), shape = 21, 
           show.legend = "point") + 
-  labs(title = "Graduated Symbol Maps of Rent within 0.5 Nile of Each Transit Station", 
+  labs(title = "Graduated Symbol Maps of Rent within 0.5 Mile of Each Transit Station", 
        subtitle = "San Francisco, CA",
        caption="Figure 5.2") +
   guides(alpha = FALSE)+
@@ -372,7 +373,7 @@ ggplot() +
   scale_fill_viridis_c() +
   facet_wrap(~year)+
   geom_sf(data = bartStops, size= 0.4) +
-  scale_size_continuous(range = c(1, 15))
+  scale_size_continuous(range = c(0.5, 15))
 ```
 
 ## 6. Mean Rent as a Function of Distance to BART Transit Stations
