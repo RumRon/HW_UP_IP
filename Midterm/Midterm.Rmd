@@ -64,11 +64,13 @@ challenge <-
   primary.data%>%
   filter(toPredict=="CHALLENGE")
 
-topredict<-(topredict,select=c(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
-                               -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,-houseno,
-                               -houseunit,-stdir,-stname,-sttype,-stsuffix,-codemunici,
-                               -municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode))%>%
-  mutate(age=sale_year-yearbuilt)
+topredict<-(topredict) %>%
+  mutate(age=sale_year-yearbuilt) %>%
+  dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
+                -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,
+                -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
+                -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
+  
 
 ```
 
