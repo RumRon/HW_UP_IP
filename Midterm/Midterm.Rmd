@@ -41,16 +41,65 @@ root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analyti
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
 
 palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
-census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite = TRUE, install = TRUE)
+
 ```
 
 
-```{r setup}
+```{r read_data}
 primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
   st_transform('EPSG:2264')
+
 ```
 
+
+```{r split_data}
+primary.data<-
+  primary.data%>%
+  filter(price<10000000)
+topredict <-
+  primary.data%>%
+  filter(toPredict!="CHALLENGE")
+challenge <-
+  primary.data%>%
+  filter(toPredict=="CHALLENGE")
+
+topredict<-(topredict,select=c(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
+                               -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,-houseno,
+                               -houseunit,-stdir,-stname,-sttype,-stsuffix,-codemunici,
+                               -municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode))%>%
+  mutate(age=sale_year-yearbuilt)
+
+```
+
+
+
+
+```{r }
+# Mapping data
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey40") +
+   geom_sf(data = topredict, aes(colour = (price)), 
+          show.legend = "point", size = .25) +
+  scale_fill_viridis_c() +
+  labs(title="try") +
+  mapTheme()
+```
+
+
+
+```{r }
+# ggplot, reorder
+census_api_key("5912704e8f5d348797c66b2ae6dd0077b880a1a3", overwrite = TRUE, install = TRUE)
+tracts20 <-  
+  get_acs(geography = "tract",
+          variables = c("B25026_001E","B02001_002E",
+                        "B15001_050E","B15001_009E",
+                        "B19013_001E", "B25058_001E"), 
+          year=2020, state= "NC",  #37
+          county="Mecklenburg", geometry=TRUE) %>%  #119
+  st_transform('EPSG:2264')
+```
 # Introduction
 
 
