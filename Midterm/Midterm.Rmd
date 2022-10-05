@@ -133,17 +133,46 @@ tracts20 <-
 ```
 # Introduction
 
-tracts20 <-  
-  get_acs(geography = "tract",
-          variables = c("B25026_001E","B02001_002E",
-                        "B15001_050E","B15001_009E",
-                        "B19013_001E", "B25058_001E"), 
-          year=2020, state= "NC",  #37
-          county="Mecklenburg", geometry=TRUE) %>%  #119
-  st_transform('EPSG:2264')
+## Summary Statistics
+Present a table of summary statistics with variable descriptions. 
+Sort these variables by their category (internal characteristics, amenities/public services or spatial structure). Check out the `stargazer` package for this.
+## Correlation Matrix
+Present a correlation matrix
+
+## Home prices scatterplots
+Present 4 home price correlation scatterplots that you think are of interest. I’m going to look for interesting open data that you’ve integrated with the home sale observations.
+## Map Home Prices
+Develop 1 map of your dependent variable (sale price)
+## 3 interesting maps
+Develop 3 maps of 3 of your most interesting independent variables.
+## This criterion is linked to a Learning OutcomeBonus for something extra engaging
+Include any other maps/graphs/charts you think might be of interest.
+
+# Methods
+
+## Table of results (training set)
+
+## Table of goodness of fit (test set)
+
+## CV Results
+
+## Pred vs Obs Scatterplot
+
+## Residuals Map w/ Moran's I
+
+## Predicted Map (Test Set)
+
+## MAPE map by neighborhood
+
+## Scatterplot - MAPE by neighborhood mean price
+
+## Split by Census Groups
 
 # Discussion
 
+## Accuracy
+
+## Generalizability
 
 # Conclusion
 
