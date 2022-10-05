@@ -48,7 +48,7 @@ census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite = TRUE, ins
 ```{r setup}
 primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
-  st_set_crs('EPSG:2264')
+  st_transform('EPSG:2264')
 ```
 
 # Introduction
