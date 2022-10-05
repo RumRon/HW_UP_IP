@@ -10,6 +10,56 @@ output:
 ---
 
 ```{r setup}
+#set some global options for knitting chunks
+
 #knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
+
+# Load some libraries
+
+library(tidyverse)
+library(sf)
+library(spdep)
+library(caret)
+library(ckanr)
+library(FNN)
+library(grid)
+library(gridExtra)
+library(ggcorrplot) # plot correlation plot
+library(corrr)      # another way to plot correlation plot
+library(kableExtra)
+library(jtools)     # for regression model plots
+library(ggstance) # to support jtools plots
+library(ggpubr)    # plotting R^2 value on ggplot point scatter
+library(broom.mixed) # needed for effects plots
+library(tidycensus)
+library(geojsonio)
+
+# functions and data directory
+root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
+
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+
+palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
+census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite = TRUE, install = TRUE)
 ```
+
+
+```{r setup}
+primary.data<-
+  st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
+  st_set_crs('EPSG:2264')
+```
+
+# Introduction
+
+
+
+# Discussion
+
+
+# Conclusion
+
+
+
+
