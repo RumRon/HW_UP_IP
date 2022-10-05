@@ -92,7 +92,47 @@ ggplot() +
 
 ```{r }
 # ggplot, reorder
-census_api_key("5912704e8f5d348797c66b2ae6dd0077b880a1a3", overwrite = TRUE, install = TRUE)
+acs_variable_list.20 <- load_variables(2020, #year
+                                         "acs5", #five year ACS estimates
+                                         cache = TRUE)
+tracts20 <- 
+  get_acs(geography = "tract", variables = c("B25026_001E","B02001_002E","B15001_050E",
+                                             "B15001_009E","B19013_001E","B25058_001E",
+                                             "B06012_002E","B28010_007E","B08101_001E",
+                                             "B09001_001E","B09001_003E","B09021_002E",
+                                             "B11001I_001E", "B14001_009E",
+                                             "B17001_002E","B27001_001E","B18101_001E",
+                                             "B19001_001E","B25001_001E","B25040_001E"), 
+          year=2020, state=37, county=119, geometry=T, output="wide") %>%
+  st_transform('EPSG:2264') %>%
+  rename(TotalPop = B25026_001E, 
+         Whites = B02001_002E,
+         FemaleBachelors = B15001_050E, 
+         MaleBachelors = B15001_009E,
+         MedHHInc = B19013_001E, 
+         MedRent = B25058_001E,
+         TotalPoverty = B06012_002E,
+         Nocom = B28010_007E, 
+         Waytowork = B08101_001E,
+         Popunder18 = B09001_001E, 
+         Popunder3 = B09001_003E,
+         Singleadult = B09021_002E, 
+         Householdtype = B11001I_001E,
+         Addmittogra = B14001_009E,
+         Poverty  = B17001_002E,
+         Healthins  = B27001_001E,
+         Disable  = B18101_001E,
+         Familyincome  = B19001_001E,
+         Housingunits  = B25001_001E,
+         Househeatingfuel  = B25040_001E)%>%
+  mutate(pctWhite = ifelse(TotalPop > 0, Whites / TotalPop,0),
+         pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop),0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
+         year = "2020") 
+
+```
+# Introduction
+
 tracts20 <-  
   get_acs(geography = "tract",
           variables = c("B25026_001E","B02001_002E",
@@ -101,10 +141,6 @@ tracts20 <-
           year=2020, state= "NC",  #37
           county="Mecklenburg", geometry=TRUE) %>%  #119
   st_transform('EPSG:2264')
-```
-# Introduction
-
-
 
 # Discussion
 
