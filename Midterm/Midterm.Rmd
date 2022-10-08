@@ -34,6 +34,9 @@ library(ggpubr)    # plotting R^2 value on ggplot point scatter
 library(broom.mixed) # needed for effects plots
 library(tidycensus)
 library(geojsonio)
+library(stargazer)
+library(utils)
+library(rgdal)
 
 # functions and data directory
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
@@ -50,6 +53,10 @@ primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
   st_transform('EPSG:2264')
 
+some.data<-
+  st_read("http://maps.co.mecklenburg.nc.us/opendata/Parcel_TaxData.zip") %>%
+  st_transform('EPSG:2264')
+
 ```
 
 
@@ -57,35 +64,58 @@ primary.data<-
 primary.data<-
   primary.data%>%
   filter(price<10000000)
+
+mklb.sf <- 
+  primary.data %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
+  st_transform('EPSG:2264')
+
+mklb.sf<-
+  mklb.sf %>%
+  mutate(age=2022-yearbuilt) %>%
+  mutate(pricepsq = price/SF)
+  
+  
+
+numericVars <- 
+  select_if(st_drop_geometry(mklb.sf), is.numeric) %>% na.omit()  
+  
 topredict <-
-  primary.data%>%
+  mklb.sf%>%
   filter(toPredict!="CHALLENGE")
+
+topredict_num <-
+  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
+
 challenge <-
-  primary.data%>%
+  mklb.sf%>%
   filter(toPredict=="CHALLENGE")
 
-topredict<-(topredict) %>%
-  mutate(age=sale_year-yearbuilt) %>%
-  dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
-                -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,
-                -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
-                -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
+challenge_num<-
+  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
+
   
 
 ```
 
+dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
+                -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,
+                -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
+                -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
 
+```{r }
+
+
+
+
+```
 
 
 ```{r }
-# Mapping data
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey40") +
-   geom_sf(data = topredict, aes(colour = (price)), 
-          show.legend = "point", size = .25) +
-  scale_fill_viridis_c() +
-  labs(title="try") +
-  mapTheme()
+
+
+
+
 ```
 
 
@@ -131,6 +161,17 @@ tracts20 <-
          year = "2020") 
 
 ```
+```{r }
+# Mapping data
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey40") +
+   geom_sf(data = topredict, aes(colour = (price)), 
+          show.legend = "point", size = .25) +
+  scale_fill_viridis_c() +
+  labs(title="try") +
+  mapTheme()
+```
+
 # Introduction
 
 ## Summary Statistics
@@ -169,13 +210,13 @@ Include any other maps/graphs/charts you think might be of interest.
 ## Split by Census Groups
 
 # Discussion
-
+Is this an effective model? What were some of the more interesting variables?  How much of the variation in prices could you predict? Describe the more important features? Describe the error in your predictions?  According to your maps, could you account the spatial variation in prices?  Where did the model predict particularly well? Poorly? Why do you think this might be?
 ## Accuracy
 
 ## Generalizability
 
 # Conclusion
-
+Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
 
 
 
