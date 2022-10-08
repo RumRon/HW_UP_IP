@@ -54,13 +54,13 @@ primary.data<-
   st_transform('EPSG:2264')
 
 some.data<-
-  st_read("http://maps.co.mecklenburg.nc.us/opendata/Parcel_TaxData.zip") %>%
+  st_read("/Users/rui/Documents/GitHub/MUSA_508/Midterm/parcel_taxdata/Parcel_TaxData.shp") %>%
   st_transform('EPSG:2264')
 
 ```
 
 
-```{r split_data}
+```{r split_data, eval=FALSE, include=FALSE}
 primary.data<-
   primary.data%>%
   filter(price<10000000)
@@ -103,9 +103,10 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
                 -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
                 -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
 
-```{r }
-
-
+```{r police}
+cmpd_police<-
+  st_read("/Users/rui/Documents/GitHub/MUSA_508/Midterm/cmpd_police_offices/CMPD_Police_offices.shp") %>%
+  st_transform('EPSG:2264')
 
 
 ```
