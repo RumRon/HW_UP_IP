@@ -13,8 +13,11 @@ output:
 #set some global options for knitting chunks
 
 #knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(warning = FALSE)
-
+knitr::opts_chunk$set(
+	eval = FALSE,
+	warning = FALSE,
+	include = FALSE
+)
 # Load some libraries
 
 library(tidyverse)
@@ -48,7 +51,7 @@ palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
 ```
 
 
-```{r read_data}
+```{r read_data, eval=FALSE, include=FALSE}
 primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
   st_transform('EPSG:2264')
@@ -60,7 +63,7 @@ some.data<-
 ```
 
 
-```{r split_data, eval=FALSE, include=FALSE}
+```{r split_data}
 primary.data<-
   primary.data%>%
   filter(price<10000000)
@@ -72,8 +75,8 @@ mklb.sf <-
 
 mklb.sf<-
   mklb.sf %>%
-  mutate(age=2022-yearbuilt) %>%
-  mutate(pricepsq = price/SF)
+  mutate(age=2022-yearbuilt)
+  #mutate(pricepsq = price/SF)
   
   
 
@@ -108,6 +111,34 @@ cmpd_police<-
   st_read("/Users/rui/Documents/GitHub/MUSA_508/Midterm/cmpd_police_offices/CMPD_Police_offices.shp") %>%
   st_transform('EPSG:2264')
 
+mklbpolice.sf <-
+  cmpd_police %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+
+primary.data<-
+  primary.data%>%
+  filter(price<10000000)
+
+mklb.sf <- 
+  primary.data %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
+  st_transform('EPSG:2264')
+
+mklb.sf<-
+  mklb.sf %>%
+  mutate(age=2022-yearbuilt)
+  #mutate(pricepsq = price/SF)
+
+mklb.sf <-
+  mklb.sf %>% 
+    mutate(
+      police_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(mklbpolice.sf), k = 1)) 
 
 ```
 
