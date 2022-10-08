@@ -75,7 +75,10 @@ mklb.sf <-
 
 mklb.sf<-
   mklb.sf %>%
-  mutate(age=2022-yearbuilt)
+  mutate(age=2022-yearbuilt)%>%
+  dplyr::select(commonpid,totalac,price,age,heatedarea,numfirepla,
+                fullbaths,halfbaths,bedrooms,units,toPredict)
+  
   #mutate(pricepsq = price/SF)
   
   
@@ -106,7 +109,7 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
                 -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
                 -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
 
-```{r police}
+```{r police_dis}
 cmpd_police<-
   st_read("/Users/rui/Documents/GitHub/MUSA_508/Midterm/cmpd_police_offices/CMPD_Police_offices.shp") %>%
   st_transform('EPSG:2264')
@@ -118,21 +121,6 @@ mklbpolice.sf <-
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
-
-
-primary.data<-
-  primary.data%>%
-  filter(price<10000000)
-
-mklb.sf <- 
-  primary.data %>% 
-  st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
-  st_transform('EPSG:2264')
-
-mklb.sf<-
-  mklb.sf %>%
-  mutate(age=2022-yearbuilt)
-  #mutate(pricepsq = price/SF)
 
 mklb.sf <-
   mklb.sf %>% 
