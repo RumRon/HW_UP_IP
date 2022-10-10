@@ -126,7 +126,7 @@ cmpd_park<-
   st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABY2SI6UT6SBQ3S2W3DS6KDMY2ER77A') %>%
   st_transform('EPSG:2264')
 # police
-cmpd_park<-
+cmpd_police<-
   st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6UW5BH6IXELYG6LNW4Y2ESAWA') %>%
   st_transform('EPSG:2264')
 
