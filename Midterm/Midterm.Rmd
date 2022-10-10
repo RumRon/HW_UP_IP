@@ -111,7 +111,7 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
 
 ```{r police_dis}
 cmpd_police<-
-  st_read("/Users/rui/Documents/GitHub/MUSA_508/Midterm/cmpd_police_offices/CMPD_Police_offices.shp") %>%
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA_508/Midterm/CMPD_Police_Offices.geojson") %>%
   st_transform('EPSG:2264')
 
 mklbpolice.sf <-
