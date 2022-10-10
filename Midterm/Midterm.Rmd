@@ -111,26 +111,7 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
                 -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
                 -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
 
-```{r police_dis}
-cmpd_police<-
-  st_read("https://raw.githubusercontent.com/RumRon/MUSA_508/Midterm/CMPD_Police_Offices.geojson") %>%
-  st_transform('EPSG:2264')
 
-mklbpolice.sf <-
-  cmpd_police %>%
-    #dplyr::select(name) %>%
-    na.omit() %>%
-    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
-    st_transform('EPSG:2264') %>%
-    distinct()
-
-mklb.sf <-
-  mklb.sf %>% 
-    mutate(
-      police_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              st_coordinates(mklbpolice.sf), k = 1)) 
-
-```
 
 
 ```{r }
@@ -170,7 +151,24 @@ cmpd_police<-
 
 ```
 
+```{r police_dis}
+cmpd_police<-
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA_508/Midterm/CMPD_Police_Offices.geojson") %>%
+  st_transform('EPSG:2264')
 
+mklbpolice.sf <-
+  cmpd_police %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+mklb.sf <-
+  mklb.sf %>% 
+    mutate(
+      police_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(mklbpolice.sf), k = 1)) 
 
 ```
 
