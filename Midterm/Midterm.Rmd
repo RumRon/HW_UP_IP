@@ -134,7 +134,41 @@ mklb.sf <-
 
 
 ```{r }
+#school data
+cmpd_school<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson?token=GHSAT0AAAAAABY2SI6UBUATSLOVAL5XA7UIY2ER7CA') %>%
+  st_transform('EPSG:2264')
 
+#CATS_BusStops.geojson
+cmpd_bustation<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.json?token=GHSAT0AAAAAABY2SI6V2I6PORBQOYZMEM52Y2ER5XQ') %>%
+  st_transform('EPSG:2264')
+
+# firestation
+cmpd_firestation<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson?token=GHSAT0AAAAAABY2SI6V4TRRMUFGYYL4UJ2YY2ER6AA') %>%
+  st_transform('EPSG:2264')
+
+# church
+cmpd_church<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson?token=GHSAT0AAAAAABY2SI6VOE5MU2RN5GRLORHSY2ER62Q') %>%
+  st_transform('EPSG:2264')
+
+# medical facilities
+cmpd_medical<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/MedicalFacilities.geojson?token=GHSAT0AAAAAABY2SI6VV5XCIHJFUYXP2ZZCY2ER7NA') %>%
+  st_transform('EPSG:2264')
+# park
+cmpd_park<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABY2SI6UT6SBQ3S2W3DS6KDMY2ER77A') %>%
+  st_transform('EPSG:2264')
+# police
+cmpd_police<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6UW5BH6IXELYG6LNW4Y2ESAWA') %>%
+  st_transform('EPSG:2264')
+
+
+```
 
 
 
