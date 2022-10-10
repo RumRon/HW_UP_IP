@@ -51,12 +51,14 @@ palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
 ```
 
 
-```{r read_data, eval=FALSE, include=FALSE}
+```{r read_data, include=FALSE}
 primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
   st_transform('EPSG:2264')
+```
 
-some.data<-
+```{r read_data, eval=FALSE, include=FALSE}
+tax.data<-
   st_read("/Users/rui/Documents/GitHub/MUSA_508/Midterm/parcel_taxdata/Parcel_TaxData.shp") %>%
   st_transform('EPSG:2264')
 
@@ -75,9 +77,9 @@ mklb.sf <-
 
 mklb.sf<-
   mklb.sf %>%
-  mutate(age=2022-yearbuilt)%>%
-  dplyr::select(commonpid,totalac,price,age,heatedarea,numfirepla,
-                fullbaths,halfbaths,bedrooms,units,toPredict)
+  mutate(age=2022-yearbuilt,priceperft=price/heatedarea)%>%
+  dplyr::select(commonpid,price,age,heatedarea,numfirepla,
+                fullbaths,halfbaths,bedrooms,units,toPredict,priceperft)
   
   #mutate(pricepsq = price/SF)
   
