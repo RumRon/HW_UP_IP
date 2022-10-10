@@ -93,10 +93,11 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
                 -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,
                 -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
                 -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
-```{r}
-try.data<-
-  st_read("https://raw.githubusercontent.com/RumRon/MUSA_508/blob/main/Midterm/landfills/Landfills.shp")%>%
 
+```{r}
+cmpd_bustation2 <- 
+  cmpd_bustation %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
   st_transform('EPSG:2264')
 ```
 
@@ -105,7 +106,22 @@ try.data<-
 
 #school data
 cmpd_school<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMS_Schools.geojson?token=GHSAT0AAAAAABY2SI6UURYASKZWEMKWCTYEY2ELSJA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMS_Schools.geojson?token=GHSAT0AAAAAABY2SI6UZW5WHHXYTA4QIQU6Y2EQD6Q') %>%
+  st_transform('EPSG:2264')
+
+#CATS_BusStops.geojson
+cmpd_bustation<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.geojson?token=GHSAT0AAAAAABY2SI6VJEE4E5II6ZEGLAUYY2EPJXQ') %>%
+  st_transform('EPSG:2264')
+
+# police office
+cmpd_policeoffice<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6VEVIMCMFY5JCPVR3GY2EQC6A') %>%
+  st_transform('EPSG:2264')
+
+# church
+cmpd_church<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson?token=GHSAT0AAAAAABY2SI6UIAMFFOKHQ72OCC6OY2EQE7Q') %>%
   st_transform('EPSG:2264')
 
 ```
@@ -113,9 +129,40 @@ cmpd_school<-
 ```{r}
 cmpd_school.sf<- 
   cmpd_school %>%
-    dplyr::select(geometry)%>%
+    dplyr::select(x, y)%>%
     na.omit() %>%
     distinct()
+```
+
+
+```{r}
+chuurch.sf <- 
+  cmpd_church %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
+  st_transform('EPSG:2264')
+```
+
+```{r}
+cmpd_school.sf <- 
+  cmpd_school %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
+  st_transform('EPSG:2264')
+```
+
+
+
+
+```{r}
+a <- nn_function(st_coordinates(topredict), cmpd_school.sf, k = 1 )
+```
+
+
+```{r}
+topredict <- 
+  topredict %>% 
+     mutate(
+       school_nn1 = nn_function(st_coordinates(topredict), 
+                              st_coordinates(cmpd_school.sf), k = 1))
 ```
 
 
