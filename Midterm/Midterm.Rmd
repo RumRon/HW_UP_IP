@@ -77,11 +77,11 @@ mklb.sf <-
 
 mklb.sf<-
   mklb.sf %>%
-  mutate(age=2022-yearbuilt,priceperft=price/heatedarea)%>%
+  mutate(age=2022-yearbuilt,prisqft=price/heatedarea)%>%
   dplyr::select(commonpid,price,age,heatedarea,numfirepla,
-                fullbaths,halfbaths,bedrooms,units,toPredict,priceperft)
+                fullbaths,halfbaths,bedrooms,units,toPredict,prisqft)
   
-  #mutate(pricepsq = price/SF)
+
   
   
 
@@ -121,7 +121,7 @@ cmpd_school<-
   st_transform('EPSG:2264')
 
 #CATS_BusStops.geojson
-cmpd_bustation<-
+cmpd_busstation<-
   st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.json?token=GHSAT0AAAAAABY2SI6V2I6PORBQOYZMEM52Y2ER5XQ') %>%
   st_transform('EPSG:2264')
 
@@ -151,12 +151,9 @@ cmpd_police<-
 
 ```
 
-```{r police_dis}
-cmpd_police<-
-  st_read("https://raw.githubusercontent.com/RumRon/MUSA_508/Midterm/CMPD_Police_Offices.geojson") %>%
-  st_transform('EPSG:2264')
+```{r all_sf}
 
-mklbpolice.sf <-
+police.sf <-
   cmpd_police %>%
     #dplyr::select(name) %>%
     na.omit() %>%
@@ -164,11 +161,61 @@ mklbpolice.sf <-
     st_transform('EPSG:2264') %>%
     distinct()
 
+church.sf<-
+  cmpd_church %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+bus.sf<-
+  cmpd_bustation %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+firestation.sf<-
+  cmpd_firestation %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+medical.sf<-
+  cmpd_medical %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+park.sf<-
+  cmpd_park %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+school.sf<-
+  cmpd_school %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+```
+
+```{r to_k}
 mklb.sf <-
   mklb.sf %>% 
     mutate(
       police_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              st_coordinates(mklbpolice.sf), k = 1)) 
+                              st_coordinates(police.sf), k = 1)) 
 
 ```
 
