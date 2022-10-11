@@ -144,10 +144,16 @@ cmpd_medical.sf <- cmpd_medical.sf[, -3]
 ```
 
 
-```{r}
-mklb.sf <-
+```{r to_k}
+mklb.sf <- 
   mklb.sf %>% 
-    mutate(
+     mutate(
+       police_nn1 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 1),
+       police_nn2 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 2),
+       police_nn3 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 3),
        school_nn1 = nn_function(st_coordinates(mklb.sf), 
                               st_coordinates(cmpd_school), k = 1),
        school_nn2 = nn_function(st_coordinates(mklb.sf), 
@@ -161,29 +167,27 @@ mklb.sf <-
        park_nn3 = nn_function(st_coordinates(mklb.sf), 
                               st_coordinates(cmpd_park), k = 3),
        firestation_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_firestation.sf, k = 1),
+                              st_coordinates(firestation.sf), k = 1),
        firestation_nn2 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_firestation.sf, k = 2),
+                              st_coordinates(firestation.sf), k = 2),
        firestation_nn3 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_firestation.sf, k = 3),
+                              st_coordinates(firestation.sf), k = 3),
        church_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_church.sf, k = 1),
+                              st_coordinates(church.sf), k = 1),
        church_nn2 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_church.sf, k = 2),
+                              st_coordinates(church.sf), k = 2),
        church_nn3 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_church.sf, k = 3),
+                              st_coordinates(church.sf), k = 3),
        medical_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_medical.sf, k = 1),
+                              st_coordinates(medical.sf), k = 1),
        medical_nn2 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_medical.sf, k = 2),
+                              st_coordinates(medical.sf), k = 2),
        medical_nn3 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_medical.sf, k = 3),
-       police_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              st_coordinates(cmpd_police), k = 1),
-       police_nn2 = nn_function(st_coordinates(mklb.sf), 
-                              st_coordinates(cmpd_police), k = 2),
-       police_nn3 = nn_function(st_coordinates(mklb.sf), 
-                              st_coordinates(cmpd_police), k = 3))  
+                              st_coordinates(medical.sf), k = 3),
+       
+       
+      
+       )
 
 ```
 
@@ -310,12 +314,35 @@ We sort these variables by their category (internal characteristics, amenities/p
 ## 2.3 Correlation Matrix
 For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
 **Internal characteristics:**
+```{r correlation_matrix}
+#internal features
+internal_feature <- mklb.sf%>%
+  dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
+                fullbaths,halfbaths,bedrooms,units,prisqft)%>%
+  rename(LivingArea = heatedarea)
+
+
+internal_feature <-
+  select_if(st_drop_geometry(internal_feature), is.numeric) %>% na.omit()
+
+ggcorrplot(
+  round(cor(internal_feature), 1), 
+  p.mat = cor_pmat(internal_feature),
+  colors = c('#05A167', "white", '#6897BB'),
+  type="lower",
+  insig = "blank") +  
+    labs(title = "Correlation across numeric variables\n(internal features)\n",
+       caption = 'Figure DATA 3.1') 
+    plotTheme()
+```
+
 
 **Amenity :**
 
 
 ## 2.4 Home prices scatterplots
 In this section, we specifically explored the correlation between sale price and four interesting and meaningful features: 
+SalePrice/Square Feet; SalePrice/Percentage of Poverty; SalePrice/Nearest Three Public Schools
 
 Through graphs below, it is obvious that the first three of four features are positively correlated to sale price, while the distance to nearest hospital is negatively correlated to the sale price that is consistent with our intuition.
 
