@@ -69,7 +69,6 @@ primary.data<-
   primary.data%>%
   filter(price<10000000)
 
-
 mklb.sf <- 
   primary.data %>% 
   st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
@@ -77,37 +76,14 @@ mklb.sf <-
   mutate(storyheigh = as.numeric(gsub(" STORY", "", primary.data$storyheigh))
   )
 
-  
-  
-
 mklb.sf<-
   mklb.sf %>%
   mutate(age=2022-yearbuilt,prisqft =price/heatedarea)%>%
   dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
                 fullbaths,halfbaths,bedrooms,units,toPredict,prisqft)
-  
-
-  
-  
 
 numericVars <- 
   select_if(st_drop_geometry(mklb.sf), is.numeric) %>% na.omit()  
-  
-topredict <-
-  mklb.sf%>%
-  filter(toPredict!="CHALLENGE")
-
-topredict_num <-
-  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
-
-challenge <-
-  mklb.sf%>%
-  filter(toPredict=="CHALLENGE")
-
-challenge_num<-
-  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
-
-  
 
 ```
 
@@ -119,7 +95,7 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
 
 
 
-```{r }
+```{r read amentity data}
 
 #school data
 cmpd_school<-
@@ -157,17 +133,16 @@ cmpd_busstation<-
 ```
 
 ```{r}
-# mutate z = 0
-#firestation
+
 
 ```
 
 
-```{r all_sf}
+```{r turn to sf}
 
 police.sf <-
   cmpd_police %>%
-    #dplyr::select(name) %>%
+    dplyr::select(name) %>%
     #na.omit() %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
@@ -175,7 +150,7 @@ police.sf <-
 
 bus.sf<-
   cmpd_busstation %>%
-    #dplyr::select(name) %>%
+    dplyr::select(StopID) %>%
     na.omit() %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
@@ -250,7 +225,7 @@ mklb.sf <-
 ```
 
 
-```{r }
+```{r read tracts}
 # ggplot, reorder
 acs_variable_list.20 <- load_variables(2020, #year
                                          "acs5", #five year ACS estimates
@@ -297,12 +272,12 @@ tracts20 <-
 ```{r police_density}
 ## Plot density
 ggplot() + geom_sf(data = tracts20, fill = "grey40") +
-  stat_density2d(data = data.frame(st_coordinates(park.sf)), 
+  stat_density2d(data = data.frame(st_coordinates(school.sf)), 
                  aes(X, Y, fill = ..level.., alpha = ..level..),
                  size = 0.01, bins = 40, geom = 'polygon') +
   scale_fill_gradient(low = "#25CB10", high = "#FA7800", name = "Density") +
   scale_alpha(range = c(0.00, 0.35), guide = "none") +
-  labs(title = "Density of Police Station") +
+  labs(title = "Density") +
   mapTheme()
 ```
 
@@ -323,7 +298,7 @@ Zillow has realized that its housing market predictions are not as accurate as t
 This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
 ## Summary Statistics
 ```{r echo=TRUE}
-star_data <- st_drop_geometry(topredict)
+star_data <- st_drop_geometry(mklb.sf)
 
 stargazer(star_data, type = "text", 
           title = "Table DATA 2.1 Summary Statistics of Internal Characteristics ",
@@ -345,11 +320,68 @@ Present 4 home price correlation scatterplots that you think are of interest. Iâ
 Develop 1 map of your dependent variable (sale price)
 ## 3 interesting maps
 Develop 3 maps of 3 of your most interesting independent variables.
+```{r g_symbol_map_population,warning = FALSE, message = FALSE}
+# Generate point centers
+bart_Buffers <-
+  rbind(
+    st_buffer(bus.sf, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
+      mutate(Legend = "Buffer") %>%
+      dplyr::select(Legend,Name))
+
+buffer_info09 <- 
+  st_intersection(bart_Buffers, tracts09) %>%
+  dplyr::select(TotalPop,MedRent,Name) %>%
+  mutate(year = 2009)
+
+buffer_info20 <- 
+  st_intersection(bart_Buffers, tracts20) %>%
+  dplyr::select(TotalPop,MedRent,Name) %>%
+  mutate(year = 2020)
+
+buffer_info <- rbind(buffer_info09, buffer_info20)
+
+buffer_final <- buffer_info %>%
+  group_by(Name,year) %>%
+  summarize("MedRent" = mean(MedRent,na.rm = TRUE),
+            "TotalPop" = sum(TotalPop))
+
+centers <- st_centroid(buffer_final)
+# Set size parameter and the size range for population
+ggplot() + 
+  geom_sf(data = tracts09, fill = "white") + 
+  geom_sf(data = tracts20, fill = "white") + 
+  geom_sf(data = centers, aes(size = TotalPop,fill = TotalPop,alpha = 1),shape = 21, 
+          show.legend = "point") + 
+  labs(title = "Graduated Symbol Maps of Population within 0.5 Mile of Each Transit Station", 
+       subtitle = "San Francisco, CA",
+       caption="Figure 5.1") +
+  guides(alpha = FALSE)+
+  guides(size = FALSE)+
+  scale_fill_viridis_c() +
+  facet_wrap(~year)+
+  geom_sf(data = bartStops, size = 0.4) +
+  scale_size_continuous(range = c(0.1, 15))
+```
 ## This criterion is linked to a Learning OutcomeBonus for something extra engaging
 Include any other maps/graphs/charts you think might be of interest.
 
 # Methods
 
+```{r echo=TRUE}
+topredict <-
+  mklb.sf%>%
+  filter(toPredict!="CHALLENGE")
+
+topredict_num <-
+  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
+
+challenge <-
+  mklb.sf%>%
+  filter(toPredict=="CHALLENGE")
+
+challenge_num<-
+  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
+```
 ## Table of results (training set)
 
 ## Table of goodness of fit (test set)
