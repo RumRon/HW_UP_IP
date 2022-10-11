@@ -77,7 +77,7 @@ mklb.sf <-
 
 mklb.sf<-
   mklb.sf %>%
-  mutate(age=2022-yearbuilt,prisqft=price/heatedarea)%>%
+  mutate(age=2022-yearbuilt,prisqft =price/heatedarea)%>%
   dplyr::select(commonpid,price,age,heatedarea,numfirepla,
                 fullbaths,halfbaths,bedrooms,units,toPredict,prisqft)
   
