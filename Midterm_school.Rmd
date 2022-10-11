@@ -102,7 +102,10 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
 cmpd_school<-
   st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson?token=GHSAT0AAAAAABY2SI6V7IARZ26MTPWPDI2CY2FSNIA') %>%
   st_transform('EPSG:2264')
-
+# bus
+cmpd_busstation<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.json?token=GHSAT0AAAAAABY2SI6UBWZKXFSMLI5LU7VGY2FSYSQ') %>%
+  st_transform('EPSG:2264')
 # firestation
 cmpd_firestation<-
   st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson?token=GHSAT0AAAAAABY2SI6UDJGGNYHRO7GJNCVIY2FSN7A') %>%
