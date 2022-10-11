@@ -87,47 +87,41 @@ numericVars <-
 
 ```
 
-dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
-                -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,
-                -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
-                -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
-
-
 
 
 ```{r read amentity data}
 
 #school data
 cmpd_school<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson?token=GHSAT0AAAAAABY2SI6V7IARZ26MTPWPDI2CY2FSNIA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson') %>%
   st_transform('EPSG:2264')
 
 # firestation
 cmpd_firestation<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson?token=GHSAT0AAAAAABY2SI6UDJGGNYHRO7GJNCVIY2FSN7A') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson') %>%
   st_transform('EPSG:2264')
 
 # church
 cmpd_church<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson?token=GHSAT0AAAAAABY2SI6V2M4GBBV6YXWWYI2OY2FSOKA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson') %>%
   st_transform('EPSG:2264')
 
 # medical facilities
 cmpd_medical<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/MedicalFacilities.geojson?token=GHSAT0AAAAAABY2SI6VPWUPG5FYF5X2J3K4Y2FSOWA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/MedicalFacilities.geojson') %>%
   st_transform('EPSG:2264')
 # park
 cmpd_park<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABY2SI6UWECBTASYEKE4YONKY2FSO7Q') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson') %>%
   st_transform('EPSG:2264')
 # police
 cmpd_police<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6VMVN5KTM3VMNBKN3SY2FSPPQ') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMPD_Police_Offices.geojson') %>%
   st_transform('EPSG:2264')
 
 # bus
 cmpd_busstation<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.json?token=GHSAT0AAAAAABY2SI6UBWZKXFSMLI5LU7VGY2FSYSQ') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.geojson') %>%
   st_transform('EPSG:2264')
 
 ```
@@ -144,6 +138,7 @@ police.sf <-
   cmpd_police %>%
     dplyr::select(name) %>%
     #na.omit() %>%
+    st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
@@ -158,7 +153,7 @@ bus.sf<-
 
 church.sf<-
   cmpd_church %>%
-    #dplyr::select(name) %>%
+    dplyr::select(num_parent) %>%
     #na.omit() %>%
     st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
@@ -168,7 +163,7 @@ church.sf<-
 
 firestation.sf<-
   cmpd_firestation %>%
-    #dplyr::select(name) %>%
+    dplyr::select(NAME) %>%
     #na.omit() %>%
     st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
@@ -177,7 +172,7 @@ firestation.sf<-
 
 medical.sf<-
   cmpd_medical %>%
-    #dplyr::select(name) %>%
+    dplyr::select(Name) %>%
     #na.omit() %>%
     st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
@@ -186,7 +181,7 @@ medical.sf<-
 
 park.sf<-
   cmpd_park %>%
-    #dplyr::select(name) %>%
+    dplyr::select(prkname) %>%
     #na.omit() %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
@@ -194,7 +189,7 @@ park.sf<-
 
 school.sf<-
   cmpd_school %>%
-    #dplyr::select(name) %>%
+    dplyr::select(school) %>%
     #na.omit() %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
@@ -206,21 +201,24 @@ school.sf<-
 
 
 ```{r to_k}
-mklb.sf <-
+mklb.sf <- 
   mklb.sf %>% 
-    mutate(
-      school_nn2 = nn_function(st_coordinates(mklb.sf), 
+     mutate(
+       police_nn1 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 1),
+       school_nn2 = nn_function(st_coordinates(mklb.sf), 
                               st_coordinates(cmpd_school), k = 2),
        park_nn2 = nn_function(st_coordinates(mklb.sf), 
                               st_coordinates(cmpd_park), k = 2),
        firestation_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_firestation.sf, k = 1),
+                              st_coordinates(firestation.sf), k = 1),
        church_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_church.sf, k = 1),
+                              st_coordinates(church.sf), k = 1),
        medical_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              cmpd_medical.sf, k = 1),
-       police_nn1 = nn_function(st_coordinates(mklb.sf), 
-                              st_coordinates(cmpd_police), k = 1)) 
+                              st_coordinates(medical.sf), k = 1),
+       
+      
+       )
 
 ```
 
@@ -272,7 +270,7 @@ tracts20 <-
 ```{r police_density}
 ## Plot density
 ggplot() + geom_sf(data = tracts20, fill = "grey40") +
-  stat_density2d(data = data.frame(st_coordinates(school.sf)), 
+  stat_density2d(data = data.frame(st_coordinates(police.sf)), 
                  aes(X, Y, fill = ..level.., alpha = ..level..),
                  size = 0.01, bins = 40, geom = 'polygon') +
   scale_fill_gradient(low = "#25CB10", high = "#FA7800", name = "Density") +
