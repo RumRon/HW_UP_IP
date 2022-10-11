@@ -129,27 +129,41 @@ cmpd_park<-
 cmpd_police<-
   st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6UW5BH6IXELYG6LNW4Y2ESAWA') %>%
   st_transform('EPSG:2264')
-
-
 ```
 
 ```{r}
-cmpd_school.sf<- 
-  cmpd_school %>%
-    dplyr::select(x, y)%>%
-    na.omit() %>%
-    distinct()
-```
+# mutate z = 0
+#firestation
+cmpd_firestation.sf <- st_coordinates(cmpd_firestation)
+cmpd_firestation.sf <- cmpd_firestations.sf[, -3]
 
+cmpd_church.sf <-st_coordinates(cmpd_church)
+cmpd_church.sf <- cmpd_church.sf[, -3]
+
+cmpd_medical.sf <-st_coordinates(cmpd_medical)
+cmpd_medical.sf <- cmpd_medical.sf[, -3]
+```
 
 
 ```{r}
 topredict <- 
   topredict %>% 
      mutate(
-       school_nn1 = nn_function(st_coordinates(topredict), 
-                              st_coordinates(cmpd_school.sf), k = 1))
+       school_nn2 = nn_function(st_coordinates(topredict), 
+                              st_coordinates(cmpd_school), k = 2),
+       park_nn2 = nn_function(st_coordinates(topredict), 
+                              st_coordinates(cmpd_park), k = 2),
+       firestation_nn1 = nn_function(st_coordinates(topredict), 
+                              cmpd_firestation.sf, k = 1),
+       church_nn1 = nn_function(st_coordinates(topredict), 
+                              cmpd_church.sf, k = 1),
+       medical_nn1 = nn_function(st_coordinates(topredict), 
+                              cmpd_medical.sf, k = 1),
+       police_nn1 = nn_function(st_coordinates(topredict), 
+                              st_coordinates(cmpd_police), k = 1)
+       )
 ```
+
 
 
 ```{r}
@@ -225,7 +239,7 @@ ggplot() +
 Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
 This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
 
-## 2. Data Manipulation and Visualization
+# 2. Data Manipulation and Visualization
 
 ## Summary Statistics
 Present a table of summary statistics with variable descriptions. 
