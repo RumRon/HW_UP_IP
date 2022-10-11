@@ -118,7 +118,7 @@ cmpd_medical<-
   st_transform('EPSG:2264')
 # park
 cmpd_park<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABY2SI6UWECBTASYEKE4YONKY2FSO7Q') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABZ2FKMPPLAMMKRVPPAKQL3SY2F22OA') %>%
   st_transform('EPSG:2264')
 # police
 cmpd_police<-
