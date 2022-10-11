@@ -77,7 +77,7 @@ mklb.sf <-
 mklb.sf<-
   mklb.sf %>%
   mutate(age=2022-yearbuilt,prisqft =price/heatedarea)%>%
-  dplyr::select(commonpid,price,age,heatedarea,numfirepla,
+  dplyr::select(commonpid,price,age,heatedarea,numfirepla,totalac,
                 fullbaths,halfbaths,bedrooms,units,toPredict,prisqft)
   
 
@@ -317,9 +317,12 @@ Zillow has realized that its housing market predictions are not as accurate as t
 This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
 ## Summary Statistics
 ```{r echo=TRUE}
-stargazer(mklb.sf, type = "html", 
+star_data <- st_drop_geometry(topredict)
+
+stargazer(star_data, type = "text", 
           title = "Table DATA 2.1 Summary Statistics of Internal Characteristics ",
           header = FALSE,
+          #out = "try.html",
           single.row = TRUE)
 ```
           
