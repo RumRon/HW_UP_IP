@@ -37,6 +37,7 @@ library(geojsonio)
 library(stargazer)
 library(utils)
 library(rgdal)
+library(stargazer)
 
 # functions and data directory
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
@@ -240,8 +241,23 @@ Zillow has realized that its housing market predictions are not as accurate as t
 This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
 
 # 2. Data Manipulation and Visualization
+## 2.0 Setup
+In this section, we loaded necessary libraries, created plot theme options and map theme options, and identified functions of quintile breaks, and average nearest neighbor distance for further analysis.
 
-## Summary Statistics
+## 2.1 Data Wrangling
+In this section, we loaded Mecklenburg County data and other complementary datasets and conducted feature selection and engineering. Besides, for other analyses, we separate the whole dataset into and in advance of Mecklenburg. 
+
+Five categorical datasets were used in this project:
+**Mecklenburg County House Price and Internal Characteristics:** basic geometric dataset provided by the course in advance.
+
+**Mecklenburg County Base Data:** geometric data containing the geographic information of Mecklenburg County. 
+Mecklenburg County Beach Neighborhood: As an alternative way to using neighborhood data of Mecklenburg County Beach, we used Mecklenburg County Municipal Boundary data that is a polygon feature class of municipal boundaries within Mecklenburg County-Dade County, and specifically filter geometric data in Mecklenburg County Beach.
+
+**Census Data:** demographic variables from the ACS 2017 for census tracts in Mecklenburg County. We specifically selected 8 variables in the analysis:
+
+**Amenity Data:** most of the data come from the website of government: http://maps.co.mecklenburg.nc.us/openmapping/data.html.Compilatory data were chosen for describing amenities and public services of Mecklenburg County. The datasets we chose encompasses fireplace, police station, education opportunity, healthcare service, and entertainment accessibility. See each dataset below:
+
+## 2.2 Summary Statistics
 Present a table of summary statistics with variable descriptions. 
 Sort these variables by their category (internal characteristics, amenities/public services or spatial structure). Check out the `stargazer` package for this.
 ## Correlation Matrix
