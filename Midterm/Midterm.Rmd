@@ -290,8 +290,8 @@ ggplot() + geom_sf(data = tracts20, fill = "grey40") +
 ```{r }
 # Mapping data
 ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey40") +
-   geom_sf(data = topredict, aes(colour = (price)), 
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+   geom_sf(data = topredict, aes(colour = (prisqft)), 
           show.legend = "point", size = .25) +
   scale_fill_viridis_c() +
   labs(title="try") +
@@ -302,6 +302,15 @@ ggplot() +
 Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
 This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
 ## Summary Statistics
+```{r echo=TRUE}
+stargazer(mklb.sf, type = "html", 
+          title = "Table DATA 2.1 Summary Statistics of Internal Characteristics ",
+          header = FALSE,
+          single.row = TRUE)
+```
+          
+          
+          
 Present a table of summary statistics with variable descriptions. 
 Sort these variables by their category (internal characteristics, amenities/public services or spatial structure). Check out the `stargazer` package for this.
 ## Correlation Matrix
