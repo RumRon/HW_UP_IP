@@ -14,9 +14,8 @@ output:
 
 #knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(
-	eval = FALSE,
 	warning = FALSE,
-	include = FALSE
+	message = FALSE
 )
 # Load some libraries
 
@@ -51,13 +50,13 @@ palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
 ```
 
 
-```{r read_data, include=FALSE}
+```{r read_data, echo=TRUE}
 primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
   st_transform('EPSG:2264')
 ```
 
-```{r read_data, eval=FALSE, include=FALSE}
+```{r read_taxdata, eval=FALSE, include=FALSE}
 tax.data<-
   st_read("/Users/rui/Documents/GitHub/MUSA_508/Midterm/parcel_taxdata/Parcel_TaxData.shp") %>%
   st_transform('EPSG:2264')
@@ -65,7 +64,7 @@ tax.data<-
 ```
 
 
-```{r split_data}
+```{r split_data, include=FALSE}
 primary.data<-
   primary.data%>%
   filter(price<10000000)
@@ -115,41 +114,48 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
 
 
 ```{r }
+
 #school data
 cmpd_school<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson?token=GHSAT0AAAAAABY2SI6UBUATSLOVAL5XA7UIY2ER7CA') %>%
-  st_transform('EPSG:2264')
-
-#CATS_BusStops.geojson
-cmpd_busstation<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.json?token=GHSAT0AAAAAABY2SI6V2I6PORBQOYZMEM52Y2ER5XQ') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson?token=GHSAT0AAAAAABY2SI6V7IARZ26MTPWPDI2CY2FSNIA') %>%
   st_transform('EPSG:2264')
 
 # firestation
 cmpd_firestation<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson?token=GHSAT0AAAAAABY2SI6V4TRRMUFGYYL4UJ2YY2ER6AA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson?token=GHSAT0AAAAAABY2SI6UDJGGNYHRO7GJNCVIY2FSN7A') %>%
   st_transform('EPSG:2264')
 
 # church
 cmpd_church<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson?token=GHSAT0AAAAAABY2SI6VOE5MU2RN5GRLORHSY2ER62Q') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson?token=GHSAT0AAAAAABY2SI6V2M4GBBV6YXWWYI2OY2FSOKA') %>%
   st_transform('EPSG:2264')
 
 # medical facilities
 cmpd_medical<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/MedicalFacilities.geojson?token=GHSAT0AAAAAABY2SI6VV5XCIHJFUYXP2ZZCY2ER7NA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/MedicalFacilities.geojson?token=GHSAT0AAAAAABY2SI6VPWUPG5FYF5X2J3K4Y2FSOWA') %>%
   st_transform('EPSG:2264')
 # park
 cmpd_park<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABY2SI6UT6SBQ3S2W3DS6KDMY2ER77A') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABY2SI6UWECBTASYEKE4YONKY2FSO7Q') %>%
   st_transform('EPSG:2264')
 # police
 cmpd_police<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6UW5BH6IXELYG6LNW4Y2ESAWA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6VMVN5KTM3VMNBKN3SY2FSPPQ') %>%
   st_transform('EPSG:2264')
 
 
+
 ```
+
+
+bus.sf<-
+  cmpd_bustation %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
 
 ```{r all_sf}
 
@@ -169,13 +175,6 @@ church.sf<-
     st_transform('EPSG:2264') %>%
     distinct()
 
-bus.sf<-
-  cmpd_bustation %>%
-    #dplyr::select(name) %>%
-    na.omit() %>%
-    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
-    st_transform('EPSG:2264') %>%
-    distinct()
 
 firestation.sf<-
   cmpd_firestation %>%
