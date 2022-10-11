@@ -336,9 +336,25 @@ ggcorrplot(
     plotTheme()
 ```
 
-
 **Amenity :**
+```{r correlation_matrix}
+# Amenity
+Amenity <- mklb.sf%>%
+  dplyr::select(price,prisqft,police_nn1, police_nn2, police_nn3, school_nn1, school_nn2, school_nn3, church_nn1, church_nn2, church_nn3, park_nn1, park_nn2, park_nn3,firestation_nn1, firestation_nn2, firestation_nn3, medical_nn1, medical_nn2, medical_nn3,police_nn1, police_nn2, police_nn3)
 
+Amenity <-
+  select_if(st_drop_geometry(Amenity), is.numeric) %>% na.omit()
+
+ggcorrplot(
+  round(cor(Amenity), 1), 
+  p.mat = cor_pmat(Amenity),
+  colors = c('#05A167', "white", '#6897BB'),
+  type="lower",
+  insig = "blank") +  
+    labs(title = "Correlation across numeric variables\n(Amenity)\n",
+       caption = 'Figure DATA 3.1') 
+    plotTheme()
+```
 
 ## 2.4 Home prices scatterplots
 In this section, we specifically explored the correlation between sale price and four interesting and meaningful features: 
