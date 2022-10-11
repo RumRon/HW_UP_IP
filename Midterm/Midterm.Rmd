@@ -39,6 +39,7 @@ library(geojsonio)
 library(stargazer)
 library(utils)
 library(rgdal)
+library(plyr)
 
 # functions and data directory
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
@@ -126,10 +127,6 @@ cmpd_busstation<-
 
 ```
 
-```{r}
-
-
-```
 
 
 ```{r turn to sf}
@@ -147,6 +144,7 @@ bus.sf<-
   cmpd_busstation %>%
     dplyr::select(StopID) %>%
     na.omit() %>%
+    st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
@@ -183,6 +181,7 @@ park.sf<-
   cmpd_park %>%
     dplyr::select(prkname) %>%
     #na.omit() %>%
+    st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
@@ -191,6 +190,7 @@ school.sf<-
   cmpd_school %>%
     dplyr::select(school) %>%
     #na.omit() %>%
+    st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
@@ -267,7 +267,7 @@ tracts20 <-
 
 
 
-```{r police_density}
+```{r police_density, echo=FALSE}
 ## Plot density
 ggplot() + geom_sf(data = tracts20, fill = "grey40") +
   stat_density2d(data = data.frame(st_coordinates(police.sf)), 
@@ -280,16 +280,6 @@ ggplot() + geom_sf(data = tracts20, fill = "grey40") +
 ```
 
 
-```{r }
-# Mapping data
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey50") +
-   geom_sf(data = topredict, aes(colour = (prisqft)), 
-          show.legend = "point", size = .25) +
-  scale_fill_viridis_c() +
-  labs(title="try") +
-  mapTheme()
-```
 
 # Introduction
 Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
@@ -320,46 +310,48 @@ Develop 1 map of your dependent variable (sale price)
 Develop 3 maps of 3 of your most interesting independent variables.
 ```{r g_symbol_map_population,warning = FALSE, message = FALSE}
 # Generate point centers
-bart_Buffers <-
+house_Buffers <-
   rbind(
-    st_buffer(bus.sf, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
-      mutate(Legend = "Buffer") %>%
-      dplyr::select(Legend,Name))
+    st_buffer(mklb.sf, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
+      mutate(Legend = "Buffer",count = 1) %>%
+      dplyr::select(commonpid, count))
 
-buffer_info09 <- 
-  st_intersection(bart_Buffers, tracts09) %>%
-  dplyr::select(TotalPop,MedRent,Name) %>%
-  mutate(year = 2009)
-
-buffer_info20 <- 
-  st_intersection(bart_Buffers, tracts20) %>%
-  dplyr::select(TotalPop,MedRent,Name) %>%
-  mutate(year = 2020)
-
-buffer_info <- rbind(buffer_info09, buffer_info20)
+buffer_info <- 
+  st_intersection(house_Buffers, bus.sf) %>%
+  dplyr::select(commonpid, count)
+  
 
 buffer_final <- buffer_info %>%
-  group_by(Name,year) %>%
-  summarize("MedRent" = mean(MedRent,na.rm = TRUE),
-            "TotalPop" = sum(TotalPop))
+  group_by(commonpid) #%>%
+  summarize("TotalBus" = sum(count))
 
 centers <- st_centroid(buffer_final)
 # Set size parameter and the size range for population
 ggplot() + 
-  geom_sf(data = tracts09, fill = "white") + 
   geom_sf(data = tracts20, fill = "white") + 
-  geom_sf(data = centers, aes(size = TotalPop,fill = TotalPop,alpha = 1),shape = 21, 
+  geom_sf(data = centers, aes(size = TotalBus,fill = TotalBus,alpha = 1),shape = 21, 
           show.legend = "point") + 
-  labs(title = "Graduated Symbol Maps of Population within 0.5 Mile of Each Transit Station", 
-       subtitle = "San Francisco, CA",
-       caption="Figure 5.1") +
+  labs(title = "Graduated Symbol Maps of Bus within 0.5 Mile of Each House unit", 
+       #subtitle = "San Francisco, CA",
+       caption="Figure 1.1") +
   guides(alpha = FALSE)+
   guides(size = FALSE)+
   scale_fill_viridis_c() +
   facet_wrap(~year)+
-  geom_sf(data = bartStops, size = 0.4) +
+  geom_sf(data = bus.sf, size = 0.4) +
   scale_size_continuous(range = c(0.1, 15))
 ```
+
+```{r}
+
+buffer_rbind<-
+  st_drop_geometry(buffer_final) 
+
+testtest <- rbind.fill(mklb.sf, buffer_rbind) %>%
+  mutate_all(~replace(., is.na(.), 0))
+```
+
+
 ## This criterion is linked to a Learning OutcomeBonus for something extra engaging
 Include any other maps/graphs/charts you think might be of interest.
 
@@ -380,6 +372,21 @@ challenge <-
 challenge_num<-
   select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
 ```
+
+```{r }
+# Mapping data
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+   geom_sf(data = topredict, aes(colour = (prisqft)), 
+          show.legend = "point", size = .25) +
+  scale_fill_viridis_c() +
+  labs(title="try") +
+  mapTheme()
+```
+
+
+
+
 ## Table of results (training set)
 
 ## Table of goodness of fit (test set)
