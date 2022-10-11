@@ -87,29 +87,23 @@ numericVars <-
 
 ```
 
-dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
-                -taxpid,-ownerlastn,-ownerfirst,-cownerfirs,-cownerlast,
-                -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
-                -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
-
-
 
 
 ```{r read amentity data}
 
 #school data
 cmpd_school<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson?token=GHSAT0AAAAAABZ2FKMPF5RHJNXTZFWAXYVEY2F2ZYA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson') %>%
   st_transform('EPSG:2264')
 
 # firestation
 cmpd_firestation<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson?token=GHSAT0AAAAAABZ2FKMP4NHP7HW62QTGJT5UY2F2ZDQ') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson') %>%
   st_transform('EPSG:2264')
 
 # church
 cmpd_church<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson?token=GHSAT0AAAAAABZ2FKMPUGX35HL33DKC6VTGY2F2Z6A') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson') %>%
   st_transform('EPSG:2264')
 
 # medical facilities
@@ -118,16 +112,16 @@ cmpd_medical<-
   st_transform('EPSG:2264')
 # park
 cmpd_park<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson?token=GHSAT0AAAAAABZ2FKMPPLAMMKRVPPAKQL3SY2F22OA') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson') %>%
   st_transform('EPSG:2264')
 # police
 cmpd_police<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABZ2FKMPI3UEICX237BDDPW2Y2F2ZRQ') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMPD_Police_Offices.geojson') %>%
   st_transform('EPSG:2264')
 
 # bus
 cmpd_busstation<-
-  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.geojson?token=GHSAT0AAAAAABZ2FKMPZ2ETXW6SHQFIIQPOY2F2Y2Q') %>%
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.geojson') %>%
   st_transform('EPSG:2264')
 
 ```
