@@ -143,18 +143,18 @@ cmpd_police<-
   st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/CMPD_Police_Offices.geojson?token=GHSAT0AAAAAABY2SI6VMVN5KTM3VMNBKN3SY2FSPPQ') %>%
   st_transform('EPSG:2264')
 
-
+# bus
+cmpd_busstation<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.json?token=GHSAT0AAAAAABY2SI6UBWZKXFSMLI5LU7VGY2FSYSQ') %>%
+  st_transform('EPSG:2264')
 
 ```
 
+```{r}
+# mutate z = 0
+#firestation
 
-bus.sf<-
-  cmpd_bustation %>%
-    #dplyr::select(name) %>%
-    na.omit() %>%
-    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
-    st_transform('EPSG:2264') %>%
-    distinct()
+```
 
 
 ```{r all_sf}
@@ -167,10 +167,19 @@ police.sf <-
     st_transform('EPSG:2264') %>%
     distinct()
 
+bus.sf<-
+  cmpd_busstation %>%
+    #dplyr::select(name) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
 church.sf<-
   cmpd_church %>%
     #dplyr::select(name) %>%
     #na.omit() %>%
+    st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
@@ -180,6 +189,7 @@ firestation.sf<-
   cmpd_firestation %>%
     #dplyr::select(name) %>%
     #na.omit() %>%
+    st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
@@ -188,6 +198,7 @@ medical.sf<-
   cmpd_medical %>%
     #dplyr::select(name) %>%
     #na.omit() %>%
+    st_zm(drop = TRUE) %>%
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
@@ -207,7 +218,11 @@ school.sf<-
     st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
     st_transform('EPSG:2264') %>%
     distinct()
+
+
 ```
+
+
 
 ```{r to_k}
 mklb.sf <-
