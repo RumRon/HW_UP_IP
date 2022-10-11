@@ -69,10 +69,16 @@ primary.data<-
   primary.data%>%
   filter(price<10000000)
 
+
 mklb.sf <- 
   primary.data %>% 
   st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
-  st_transform('EPSG:2264')
+  st_transform('EPSG:2264') %>%
+  mutate(storyheigh = as.numeric(gsub(" STORY", "", primary.data$storyheigh))
+  )
+
+  
+  
 
 mklb.sf<-
   mklb.sf %>%
