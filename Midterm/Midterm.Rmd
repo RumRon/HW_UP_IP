@@ -492,23 +492,17 @@ st_drop_geometry(mklb.sf) %>%
 
 Develop 1 map of your dependent variable (sale price)
 ```{r sale price map}
-to <- miami.training %>%
-  mutate(priceFt = SalePrice/LivingSqFt)
-
-map.priceFt <- ggplot() + 
-  geom_sf(data = st_union(miami.neigh),fill = '#E5E5E5') +
-  geom_sf(data = st_union(miami.beach),fill = '#E5E5E5') +
-  geom_sf(data = st_centroid(miami.training),aes(color = q5(priceFt)),size = .5) +
-  scale_color_manual(values = palette,
-                     labels = qBr(miami.training,'priceFt'),
-                     name = "Price/ft^2") +
-  labs(title = 'Sale Price Per Square Foot\n',
-       caption = '') +
-  mapTheme() + 
-  plotTheme()
-
-map.priceFt
-
+# Mapping data
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+   geom_sf(data = topredict, aes(colour = (prisqft)), 
+          show.legend = "point", size = .25) +
+    # scale_colour_manual(values = palette5,
+    #                labels=qBr(topredict,"PricePerSq"),
+    #                name="Quintile\nBreaks") +
+  scale_fill_viridis_c() +
+  labs(title="try") +
+  mapTheme()
 ```
 ## 3 interesting maps
 Develop 3 maps of 3 of your most interesting independent variables.
@@ -522,14 +516,7 @@ Include any other maps/graphs/charts you think might be of interest.
 
 
 ```{r }
-# Mapping data
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey50") +
-   geom_sf(data = topredict, aes(colour = (prisqft)), 
-          show.legend = "point", size = .25) +
-  scale_fill_viridis_c() +
-  labs(title="try") +
-  mapTheme()
+
 ```
 
 
