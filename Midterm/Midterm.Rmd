@@ -226,7 +226,7 @@ tracts20 <-
                                              "B19001_001E","B25001_001E","B25040_001E"), 
           year=2020, state=37, county=119, geometry=T, output="wide") %>%
   st_transform('EPSG:2264') %>%
-  rename(TotalPop = B25026_001E, 
+  mutate(TotalPop = B25026_001E, 
          Whites = B02001_002E,
          FemaleBachelors = B15001_050E, 
          MaleBachelors = B15001_009E,

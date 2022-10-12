@@ -60,10 +60,10 @@ nn_functions<-
     rownames_to_column(var = "thisPoint") %>%
     gather(points, point_distance, V1:ncol(.)) %>%
     arrange(as.numeric(thisPoint)) %>%
-    group_by(thisPoint) %>%
-    summarize(pointDistance = mean(point_distance)) %>%
-    arrange(as.numeric(thisPoint)) %>% 
-    dplyr::select(thisPoint) %>%
+    aggregate(X = output$point_distance,by = list(output$thisPoint), FUN=mean)%>%
+    mutate(point_distance = x)%>%
+    arrange(as.numeric(Group.1))
+    dplyr::select(-Group.1,-x) %>%
     pull()
   
   return(output)  
@@ -225,14 +225,45 @@ school.sf<-
 
 
 ```{r to_k}
-library(spatstat)
+# library(spatstat)
+# 
+ st_c <- st_coordinates
 
-st_c <- st_coordinates
+measureFrom_Matrix <-
+  as.matrix(st_c(mklb.sf))
+measureTo_Matrix <-
+  as.matrix(st_c(police.sf))
+nn <-
+  get.knnx(st_c(police.sf), st_c(mklb.sf), 2)$nn.dist
+output <-as.data.frame(nn)
 
-mklb.sf <- 
-  mklb.sf %>% 
-     mutate(
-       police_nn1 = nn_functions(st_c(mklb.sf), st_c(police.sf),1))
+output <- output %>%
+  rownames_to_column(var = "thisPoint") #%>%
+
+output <- output %>%
+  gather(points, point_distance, V1:ncol(.)) #%>%
+
+output <- output %>%
+  arrange(as.numeric(thisPoint))
+test2 <-  
+  aggregate(output$point_distance,list(output$thisPoint), FUN=mean)%>%
+  mutate(point_distance = x)%>%
+  arrange(as.numeric(Group.1)) #%>%
+  #dplyr::select(-thisPoint)
+
+
+
+# test2 <- output %>%
+#   arrange(as.numeric(thisPoint))%>%
+#   summarize(output,pointDistance = mean(point_distance), groups = thisPoint)%>%
+#   #arrange(as.numeric(thisPoint)) %>%
+#   dplyr::select(-thisPoint) %>%
+#   pull()
+
+mklb.sf <-
+  mklb.sf %>%
+      mutate(
+        police_nn1 = nn_functions(st_c(mklb.sf), st_c(police.sf),2))
 
 ```
 
