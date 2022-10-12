@@ -336,17 +336,17 @@ ggcorrplot(
 **Amenity :**There is also a strong connection between house price and public facilities. Generally speaking, if the public facilities are better, the house price will also increase.
 ```{r correlation_matrix}
 # Amenity
-Amenity <- mklb.sf%>%
+Matrix_Amenity <- mklb.sf%>%
   dplyr::select(price,prisqft,police_nn1, police_nn2, police_nn3, school_nn1, school_nn2, school_nn3, church_nn1, church_nn2, church_nn3, park_nn1, park_nn2, park_nn3,firestation_nn1, firestation_nn2, firestation_nn3, medical_nn1, medical_nn2, medical_nn3,police_nn1, police_nn2, police_nn3)
 
-Amenity <-Amenity%>%filter(prisqft!= 'Inf')
+Matrix_Amenity <-Amenity%>%filter(prisqft!= 'Inf')
 
-Amenity <-
+Matrix_Amenity <-
   select_if(st_drop_geometry(Amenity), is.numeric) %>% na.omit()
 
 ggcorrplot(
-  round(cor(Amenity), 1), 
-  p.mat = cor_pmat(Amenity),
+  round(cor(Matrix_Amenity), 1), 
+  p.mat = cor_pmat(Matrix_Amenity),
   colors = c('#05A167', "white", '#6897BB'),
   type="lower",
   insig = "blank") +  
@@ -354,6 +354,34 @@ ggcorrplot(
        caption = 'Figure DATA 3.1')+ 
     plotTheme()
 ```
+
+```{r}
+# ACS data
+Matrix_ACS1 <- mklb.sf%>%
+  dplyr::select(price,prisqft)
+
+Matrix_ACS2 <- tracts20%>%
+  dplyr::select(pctWhite, pctBachelors, pctPoverty, TotalPop, MedHHInc, Singleadult, Healthins, Familyincome, Housingunits, Househeatingfuel)
+
+Matrix_ACS <-st_join(Matrix_ACS1, Matrix_ACS2) %>%
+  distinct(geometry, .keep_all = TRUE)
+
+Matrix_ACS <-Matrix_ACS%>%filter(prisqft!= 'Inf')
+
+Matrix_ACS <-
+  select_if(st_drop_geometry(Matrix_ACS), is.numeric) %>% na.omit()
+
+ggcorrplot(
+  round(cor(Matrix_ACS), 1), 
+  p.mat = cor_pmat(Matrix_ACS),
+  colors = c('#05A167', "white", '#6897BB'),
+  type="lower",
+  insig = "blank") +  
+    labs(title = "Correlation across numeric variables\n(Amenity)\n",
+       caption = 'Figure DATA 3.1')+ 
+    plotTheme()
+```
+
 
 ## 2.4 Home prices scatterplots
 In this section, we specifically explored the correlation between sale price and four interesting and meaningful features: 
