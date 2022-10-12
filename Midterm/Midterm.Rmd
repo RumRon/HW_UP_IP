@@ -39,7 +39,7 @@ library(geojsonio)
 library(stargazer)
 library(utils)
 library(rgdal)
-library(plyr)
+#library(plyr)
 
 # functions and data directory
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
@@ -331,7 +331,7 @@ internal_feature <- mklb.sf%>%
 
 
 internal_feature <-
-  select_if(st_drop_geometry(internal_feature), is.numeric) %>% na.omit()
+  select_if(st_drop_geometry(internal_feature), is.numeric)  %>% na.omit()
 
 ggcorrplot(
   round(cor(internal_feature), 1), 
@@ -340,7 +340,7 @@ ggcorrplot(
   type="lower",
   insig = "blank") +  
     labs(title = "Correlation across numeric variables\n(internal features)\n",
-       caption = 'Figure DATA 3.1') 
+       caption = 'Figure DATA 3.1') +
     plotTheme()
 ```
 
@@ -349,12 +349,12 @@ Present 4 home price correlation scatterplots that you think are of interest. Iâ
 ```{r Correlation}
 
 ## Home Features cor
-st_drop_geometry(mlkb.sf) %>% 
+st_drop_geometry(mklb.sf) %>% 
   mutate(LivingArea = heatedarea) %>%
-  dplyr::select(price, LivingArea, age,) %>%
-  filter(price <= 1000000, Age < 500) %>%
-  gather(Variable, Value, -SalePrice) %>% 
-   ggplot(aes(Value, SalePrice)) +
+  dplyr::select(price, LivingArea, age) %>%
+  filter(price <= 1000000, age < 500) %>%
+  gather(Variable, Value, -price) %>% 
+   ggplot(aes(Value, price)) +
      geom_point(size = .5) + geom_smooth(method = "lm", se=F, colour = "#FA7800") +
      facet_wrap(~Variable, ncol = 3, scales = "free") +
      labs(title = "Price as a function of continuous variables") +
