@@ -332,7 +332,7 @@ ggcorrplot(
     plotTheme()
 ```
 
-**Amenity :**
+**Amenity :**There is also a strong connection between house price and public facilities. Generally speaking, if the public facilities are better, the house price will also increase.
 ```{r correlation_matrix}
 # Amenity
 Amenity <- mklb.sf%>%
