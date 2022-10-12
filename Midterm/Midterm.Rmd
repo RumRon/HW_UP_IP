@@ -519,18 +519,16 @@ Include any other maps/graphs/charts you think might be of interest.
 hospital_nn1_expanded <- topredict %>%
   mutate(hospital_nn1.expanded = medical_nn1 * 1000)
 
-map.hospital <- ggplot() + 
+ggplot() + 
   geom_sf(data = st_union(tracts20),fill = '#E5E5E5') +
   geom_sf(data = st_centroid(hospital_nn1_expanded),aes(color = q5(hospital_nn1.expanded)),size = .5) +
-  scale_color_manual(values = palette,
-                     labels = qBr(hospital_nn1_expanded,'hospital_nn1.expanded'),
-                     name = "Average Distrance\nto Nearest Hospital\n(timed by 1000 \nfor better visualization)\n") +
+  # scale_color_manual(values = palette,
+  #                    labels = qBr(hospital_nn1_expanded,'hospital_nn1.expanded'),
+  #                    name = "Average Distrance\nto Nearest Hospital\n(timed by 1000 \nfor better visualization)\n") +
   labs(title = 'Distribution of Average Distrance to Nearest Hospital\nof Each Home Sale Observation\n',
        caption = 'Figure DATA 6.3') +
   mapTheme() + 
   plotTheme()
-
-map.hospital
 ```
 
 
