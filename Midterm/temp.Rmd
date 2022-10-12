@@ -35,9 +35,9 @@ library(broom.mixed) # needed for effects plots
 library(tidycensus)
 library(geojsonio)
 library(stargazer)
-library(utils)
-library(rgdal)
-library(stargazer)
+#library(utils)
+#library(rgdal)
+#library(stargazer)
 
 # functions and data directory
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
@@ -223,6 +223,49 @@ school.sf<-
 
 ```
 
+
+```{r to_k}
+mklb.sf <- 
+  mklb.sf %>% 
+     mutate(
+       police_nn1 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 1),
+       police_nn2 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 2),
+       police_nn3 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 3),
+       school_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(school.sf), k = 1),
+       school_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(school.sf), k = 2),
+       school_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(school.sf), k = 3),
+       park_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(park.sf), k = 1),
+       park_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(park.sf), k = 2),
+       park_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(park.sf), k = 3),
+       firestation_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(firestation.sf), k = 1),
+       firestation_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(firestation.sf), k = 2),
+       firestation_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(firestation.sf), k = 3),
+       church_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(church.sf), k = 1),
+       church_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(church.sf), k = 2),
+       church_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(church.sf), k = 3),
+       medical_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(medical.sf), k = 1),
+       medical_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(medical.sf), k = 2),
+       medical_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(medical.sf), k = 3))
+
+```
 
 ```{r to_k}
 # library(spatstat)
