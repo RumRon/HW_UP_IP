@@ -239,7 +239,7 @@ mklb.sf <-
 
 
 ```{r read tracts}
-# ggplot, reorder
+# acs
 acs_variable_list.20 <- load_variables(2020, #year
                                          "acs5", #five year ACS estimates
                                          cache = TRUE)
@@ -355,8 +355,9 @@ factor_internal <-
   select_if(st_drop_geometry(factor_internal), is.numeric)  %>% na.omit()
 #amentities
 factor_amenity <- mklb.sf%>%
-  dplyr::select(-commonpid,-age,-storyheigh,-heatedarea,-numfirepla,-totalac,
-                 -fullbaths,-halfbaths,-bedrooms,-units)
+  dplyr::select(price,prisqft,police_nn1, police_nn2, police_nn3, school_nn1, school_nn2, school_nn3, church_nn1, church_nn2, church_nn3, park_nn1, park_nn2, park_nn3,firestation_nn1, firestation_nn2, firestation_nn3, medical_nn1, medical_nn2, medical_nn3,police_nn1, police_nn2, police_nn3)
+  # dplyr::select(-commonpid,-age,-storyheigh,-heatedarea,-numfirepla,-totalac,
+  #                -fullbaths,-halfbaths,-bedrooms,-units)
 factor_amenity <-
   select_if(st_drop_geometry(factor_amenity), is.numeric)  %>% na.omit()
 #ACS
@@ -408,35 +409,52 @@ For better visualization, features were divided into internal characteristics an
 ```{r correlation_matrix}
 #internal features
 ggcorrplot(
-  round(cor(factor_internal), 1), 
+  round(cor(factor_internal), 1),
   p.mat = cor_pmat(factor_internal),
   colors = c('#05A167', "white", '#6897BB'),
   type="lower",
-  insig = "blank") +  
+  insig = "blank") +
     labs(title = "Correlation across numeric variables\n(internal features)\n",
        caption = 'Figure DATA 3.1') +
     plotTheme()
 
 #amenity features
 ggcorrplot(
-  round(cor(factor_amenity), 1), 
+  round(cor(factor_amenity), 1),
   p.mat = cor_pmat(factor_amenity),
   colors = c('#05A167', "white", '#6897BB'),
   type="lower",
-  insig = "blank") +  
+  insig = "blank") +
     labs(title = "Correlation across numeric variables\n(Amenity)\n",
        caption = 'Figure DATA 3.2') +
     plotTheme()
 
 ggcorrplot(
-  round(cor(factor_acs), 1), 
+  round(cor(factor_acs), 1),
   p.mat = cor_pmat(factor_acs),
   colors = c('#05A167', "white", '#6897BB'),
   type="lower",
-  insig = "blank") +  
+  insig = "blank") +
     labs(title = "Correlation across numeric variables\n(ACS)\n",
-       caption = 'Figure DATA 3.1')+ 
+       caption = 'Figure DATA 3.1')+
     plotTheme()
+
+# factor_internal %>% 
+#   correlate() %>% 
+#   autoplot() +
+#   geom_text(aes(label = round(r,digits=2)),size = 2)
+# 
+# 
+# factor_acs %>% 
+#   correlate() %>% 
+#   autoplot() +
+#   geom_text(aes(label = round(r,digits=2)),size = 2)
+# 
+# factor_amenity %>% 
+#   correlate() %>% 
+#   autoplot() +
+#   geom_text(aes(label = round(r,digits=2)),size = 2)
+
 ```
 
 ## Home prices scatterplots
@@ -459,48 +477,7 @@ st_drop_geometry(mklb.sf) %>%
 Develop 1 map of your dependent variable (sale price)
 ## 3 interesting maps
 Develop 3 maps of 3 of your most interesting independent variables.
-```{r g_symbol_map_population,warning = FALSE, message = FALSE}
-# Generate point centers
-house_Buffers <-
-  rbind(
-    st_buffer(mklb.sf, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
-      mutate(Legend = "Buffer",count = 1) %>%
-      dplyr::select(commonpid, count))
 
-buffer_info <- 
-  st_intersection(house_Buffers, bus.sf) %>%
-  dplyr::select(commonpid, count)
-  
-
-buffer_final <- buffer_info %>%
-  group_by(commonpid) #%>%
-  summarize(.,"TotalBus" = sum(count))
-
-centers <- st_centroid(buffer_final)
-# Set size parameter and the size range for population
-ggplot() + 
-  geom_sf(data = tracts20, fill = "white") + 
-  geom_sf(data = centers, aes(size = TotalBus,fill = TotalBus,alpha = 1),shape = 21, 
-          show.legend = "point") + 
-  labs(title = "Graduated Symbol Maps of Bus within 0.5 Mile of Each House unit", 
-       #subtitle = "San Francisco, CA",
-       caption="Figure 1.1") +
-  guides(alpha = FALSE)+
-  guides(size = FALSE)+
-  scale_fill_viridis_c() +
-  facet_wrap(~year)+
-  geom_sf(data = bus.sf, size = 0.4) +
-  scale_size_continuous(range = c(0.1, 15))
-```
-
-```{r}
-
-buffer_rbind<-
-  st_drop_geometry(buffer_final) 
-
-testtest <- rbind.fill(mklb.sf, buffer_rbind) %>%
-  mutate_all(~replace(., is.na(.), 0))
-```
 
 
 ## This criterion is linked to a Learning OutcomeBonus for something extra engaging
@@ -567,3 +544,47 @@ Would you recommend your model to Zillow? Why or why not? How might you improve 
 
 
 
+
+
+```{r g_symbol_map_population,warning = FALSE, message = FALSE}
+# Generate point centers
+house_Buffers <-
+  rbind(
+    st_buffer(mklb.sf, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
+      mutate(Legend = "Buffer",count = 1) %>%
+      dplyr::select(commonpid, count))
+
+buffer_info <- 
+  st_intersection(house_Buffers, bus.sf) %>%
+  dplyr::select(commonpid, count)
+  
+
+buffer_final <- buffer_info %>%
+  group_by(commonpid) #%>%
+  summarize(.,"TotalBus" = sum(count))
+
+centers <- st_centroid(buffer_final)
+# Set size parameter and the size range for population
+ggplot() + 
+  geom_sf(data = tracts20, fill = "white") + 
+  geom_sf(data = centers, aes(size = TotalBus,fill = TotalBus,alpha = 1),shape = 21, 
+          show.legend = "point") + 
+  labs(title = "Graduated Symbol Maps of Bus within 0.5 Mile of Each House unit", 
+       #subtitle = "San Francisco, CA",
+       caption="Figure 1.1") +
+  guides(alpha = FALSE)+
+  guides(size = FALSE)+
+  scale_fill_viridis_c() +
+  facet_wrap(~year)+
+  geom_sf(data = bus.sf, size = 0.4) +
+  scale_size_continuous(range = c(0.1, 15))
+```
+
+```{r}
+
+buffer_rbind<-
+  st_drop_geometry(buffer_final) 
+
+testtest <- rbind.fill(mklb.sf, buffer_rbind) %>%
+  mutate_all(~replace(., is.na(.), 0))
+```
