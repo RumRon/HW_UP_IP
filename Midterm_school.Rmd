@@ -314,12 +314,13 @@ For better visualization, features were divided into internal characteristics an
 #internal features
 internal_feature <- mklb.sf%>%
   dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
-                fullbaths,halfbaths,bedrooms,units,prisqft)%>%
-  rename(LivingArea = heatedarea)
-
+                fullbaths,halfbaths,bedrooms,units,prisqft)
+  
+internal_feature <-internal_feature%>%filter(prisqft!= 'Inf')
 
 internal_feature <-
-  select_if(st_drop_geometry(internal_feature), is.numeric) %>% na.omit()
+  select_if(st_drop_geometry(internal_feature), is.numeric) %>% na.omit() # check
+# look numeric, factors, check variable ->
 
 ggcorrplot(
   round(cor(internal_feature), 1), 
@@ -328,7 +329,7 @@ ggcorrplot(
   type="lower",
   insig = "blank") +  
     labs(title = "Correlation across numeric variables\n(internal features)\n",
-       caption = 'Figure DATA 3.1') 
+       caption = 'Figure DATA 3.1')+ 
     plotTheme()
 ```
 
@@ -337,6 +338,8 @@ ggcorrplot(
 # Amenity
 Amenity <- mklb.sf%>%
   dplyr::select(price,prisqft,police_nn1, police_nn2, police_nn3, school_nn1, school_nn2, school_nn3, church_nn1, church_nn2, church_nn3, park_nn1, park_nn2, park_nn3,firestation_nn1, firestation_nn2, firestation_nn3, medical_nn1, medical_nn2, medical_nn3,police_nn1, police_nn2, police_nn3)
+
+Amenity <-Amenity%>%filter(prisqft!= 'Inf')
 
 Amenity <-
   select_if(st_drop_geometry(Amenity), is.numeric) %>% na.omit()
@@ -348,7 +351,7 @@ ggcorrplot(
   type="lower",
   insig = "blank") +  
     labs(title = "Correlation across numeric variables\n(Amenity)\n",
-       caption = 'Figure DATA 3.1') 
+       caption = 'Figure DATA 3.1')+ 
     plotTheme()
 ```
 
