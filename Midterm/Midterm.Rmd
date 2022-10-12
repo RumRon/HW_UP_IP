@@ -295,6 +295,21 @@ ggplot() + geom_sf(data = tracts20, fill = "grey40") +
 ```
 
 
+```{r echo=TRUE}
+topredict <-
+  mklb.sf%>%
+  filter(toPredict!="CHALLENGE")
+
+topredict_num <-
+  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
+
+challenge <-
+  mklb.sf%>%
+  filter(toPredict=="CHALLENGE")
+
+challenge_num<-
+  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
+```
 
 # 1. Introduction
 Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
@@ -464,7 +479,7 @@ Present 4 home price correlation scatterplots that you think are of interest. Iâ
 ## Home Features cor
 st_drop_geometry(mklb.sf) %>% 
   mutate(LivingArea = heatedarea) %>%
-  dplyr::select(price, LivingArea, age, storyheigh) %>%
+  dplyr::select(price, LivingArea, age, storyheigh,bedrooms, police_nn1,police_nn2,police_nn3) %>%
   filter(price <= 1000000, age < 500) %>%
   gather(Variable, Value, -price) %>% 
    ggplot(aes(Value, price)) +
@@ -474,7 +489,27 @@ st_drop_geometry(mklb.sf) %>%
      plotTheme()
 ```
 ## Map Home Prices
+
 Develop 1 map of your dependent variable (sale price)
+```{r sale price map}
+to <- miami.training %>%
+  mutate(priceFt = SalePrice/LivingSqFt)
+
+map.priceFt <- ggplot() + 
+  geom_sf(data = st_union(miami.neigh),fill = '#E5E5E5') +
+  geom_sf(data = st_union(miami.beach),fill = '#E5E5E5') +
+  geom_sf(data = st_centroid(miami.training),aes(color = q5(priceFt)),size = .5) +
+  scale_color_manual(values = palette,
+                     labels = qBr(miami.training,'priceFt'),
+                     name = "Price/ft^2") +
+  labs(title = 'Sale Price Per Square Foot\n',
+       caption = '') +
+  mapTheme() + 
+  plotTheme()
+
+map.priceFt
+
+```
 ## 3 interesting maps
 Develop 3 maps of 3 of your most interesting independent variables.
 
@@ -485,21 +520,6 @@ Include any other maps/graphs/charts you think might be of interest.
 
 # Methods
 
-```{r echo=TRUE}
-topredict <-
-  mklb.sf%>%
-  filter(toPredict!="CHALLENGE")
-
-topredict_num <-
-  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
-
-challenge <-
-  mklb.sf%>%
-  filter(toPredict=="CHALLENGE")
-
-challenge_num<-
-  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
-```
 
 ```{r }
 # Mapping data
