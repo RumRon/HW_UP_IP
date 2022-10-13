@@ -627,9 +627,22 @@ kable(test_fit,
   kable_styling("striped", full_width = F)
 
 ```
-```
-## CV Results
 
+
+## CV Results
+```{r fit}
+fitControl <- trainControl(method = "cv", number = 100)
+set.seed(42)
+
+reg.cv <- 
+  train(price ~ ., data = st_drop_geometry(topredict_num) %>% 
+          dplyr::select(colnames(factor_internal), 
+                        colnames(factor_amenity),
+                        colnames(factor_acs)),
+        method = "lm", trControl = fitControl, na.action = na.pass)
+
+reg.cv
+```
 ## Pred vs Obs Scatterplot
 
 ## Residuals Map w/ Moran's I
