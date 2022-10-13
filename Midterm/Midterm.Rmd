@@ -295,21 +295,7 @@ ggplot() + geom_sf(data = tracts20, fill = "grey40") +
 ```
 
 
-```{r echo=TRUE}
-topredict <-
-  mklb.sf%>%
-  filter(toPredict!="CHALLENGE")
 
-topredict_num <-
-  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
-
-challenge <-
-  mklb.sf%>%
-  filter(toPredict=="CHALLENGE")
-
-challenge_num<-
-  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
-```
 
 # 1. Introduction
 Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
@@ -545,7 +531,68 @@ ggplot() +
   plotTheme()
 ```
 
+```{r echo=TRUE}
+topredict <-
+  mklb.sf%>%
+  filter(toPredict!="CHALLENGE") %>%
+  filter(prisqft!= 'Inf')
 
+topredict_num <-
+  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
+
+challenge <-
+  mklb.sf%>%
+  filter(toPredict=="CHALLENGE")
+
+challenge_num<-
+  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
+```
+
+
+```{r }
+
+# set.seed(42)
+# 
+# inTrain <- caret::createDataPartition(
+#   y = paste(mklb.sf$commonpid,mklb.sf$price ), 
+#   p = .60, list = FALSE)
+
+# split data into training and test
+model.training <- topredict_num
+model.test <- challenge_num
+
+## First model: All internal features, amenity features
+model1 <- lm(price ~ ., data = topredict_num %>% 
+           dplyr::select(colnames(factor_internal), 
+                         colnames(factor_amenity),
+                         colnames(factor_acs)
+))
+
+stargazer(model1, type = "html", 
+          title = "Table 4.1.1 Summary Statistics of Model 1 ",
+          out = "test.html",
+          header = FALSE,
+          single.row = TRUE)
+
+```
+
+```{r }
+model2 <- lm(price ~ ., data = topredict_num %>% 
+           dplyr::select(# internal features
+                         price, prisqft, age, storyheigh,heatedarea,
+                         numfirepla, fullbaths,halfbaths,bedrooms,
+                         # amenity features
+                         police_nn1,police_nn2,police_nn3,school_nn1,
+                         school_nn2,school_nn3,church_nn1,church_nn2,
+                         church_nn3,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn1,medical_nn2)
+)
+
+stargazer(model2, type = "html", 
+          title = "Table 4.1.2 Summary Statistics of Model 2 ",
+          header = FALSE,
+          out = "model2.html"
+          single.row = TRUE)
 
 
 ## Table of results (training set)
