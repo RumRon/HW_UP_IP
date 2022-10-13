@@ -630,7 +630,7 @@ kable(test_fit,
 
 
 ## CV Results
-```{r fit}
+```{r cv_results}
 fitControl <- trainControl(method = "cv", number = 100)
 set.seed(42)
 
@@ -641,10 +641,40 @@ reg.cv <-
                         colnames(factor_acs)),
         method = "lm", trControl = fitControl, na.action = na.pass)
 
-reg.cv
-```
-## Pred vs Obs Scatterplot
+kable(reg.cv$resample,
+          caption = 'Table RESULT. Cross-validation Test: Summary of RMSE, R Squared and MAE') %>%
+  kable_styling("striped", full_width = F)
 
+
+```
+
+
+```{r distribution_cv_MAE}
+ggplot(data = reg.cv$resample) +
+  geom_histogram(aes(x = reg.cv$resample$MAE), fill = 'blue') +
+  labs(title="Distribution of Cross-validation MAE",
+       subtitle = "K = 100\n",
+       caption = "Figure RESULT") +
+  xlab('Mean Absolute Error') +
+  ylab('Count') +
+  plotTheme()
+
+```
+
+## Pred vs Obs Scatterplot
+```{r pred_vs_obs}
+reg.cv$resample %>% 
+  pivot_longer(-Resample) %>% 
+  mutate(name = as.factor(name)) %>% 
+  ggplot(., aes(x = name, y = value, color = name)) +
+  geom_jitter(width = 0.1) +
+  facet_wrap(~name, ncol = 3, scales = "free") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(title = 'Cross-validation Test: Distribution of MAE, RMSE, R Squared\n',
+       caption = "Figure RESULT") +
+  plotTheme()
+```
 ## Residuals Map w/ Moran's I
 
 ## Predicted Map (Test Set)
