@@ -194,6 +194,16 @@ school.sf<-
     st_transform('EPSG:2264') %>%
     distinct()
 
+nhood.sf<-
+  subset(neighborhood,name != "NA") %>%
+  dplyr::select(name) %>%
+  #filter(name != NA)%>%
+  st_zm(drop = TRUE) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+  st_transform('EPSG:2264') %>%
+  distinct()
+  
+
 
 ```
 
@@ -239,6 +249,9 @@ mklb.sf <-
                               st_coordinates(medical.sf), k = 2),
        medical_nn3 = nn_function(st_coordinates(mklb.sf), 
                               st_coordinates(medical.sf), k = 3))
+
+mklb.sf <-st_join(mklb.sf, nhood.sf)
+
 
 ```
 
@@ -502,14 +515,14 @@ Present 4 home price correlation scatterplots that you think are of interest. Iâ
 ```{r Correlation}
 
 ## Home Features cor
-st_drop_geometry(mklb.sf) %>% 
+st_drop_geometry(all.sf) %>% 
   mutate(LivingArea = heatedarea) %>%
-  dplyr::select(price, LivingArea, age, storyheigh,bedrooms, police_nn1,police_nn2,police_nn3) %>%
+  dplyr::select(price, LivingArea, age,bedrooms, Singleadult) %>%
   filter(price <= 1000000, age < 500) %>%
   gather(Variable, Value, -price) %>% 
    ggplot(aes(Value, price)) +
      geom_point(size = .5) + geom_smooth(method = "lm", se=F, colour = "#FA7800") +
-     facet_wrap(~Variable, ncol = 3, scales = "free") +
+     facet_wrap(~Variable, ncol = 4, scales = "free") +
      labs(title = "Price as a function of continuous variables") +
      plotTheme()
 ```
@@ -614,7 +627,7 @@ ggplot() +
 set.seed(42)
 
 inTrain <- caret::createDataPartition(
-  y = paste(topredict_num$commonpid,topredict_num$price ),
+  y = paste(topredict$commonpid,topredict$price, topredict$name),
   p = .60, list = FALSE)
 
 # split data into training and test
@@ -639,7 +652,7 @@ stargazer(model1, type = "html",
 ```{r model2}
 model2 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
            dplyr::select(# internal features
-                         price, age, storyheigh,heatedarea, #prisqft,
+                         price, age, storyheigh,heatedarea,name, #prisqft,
                          numfirepla, fullbaths,halfbaths,bedrooms,
                          units,
                          # amenity features
@@ -878,48 +891,6 @@ Would you recommend your model to Zillow? Why or why not? How might you improve 
 
 
 ```{r atesttest}
-plot_summs(model1, scale = TRUE)
+plot_summs(model2, scale = TRUE)
 ```
 
-```{r g_symbol_map_population,warning = FALSE, message = FALSE}
-# Generate point centers
-house_Buffers <-
-  rbind(
-    st_buffer(mklb.sf, 2640) %>% # 0.25mile = 1320 ft is an acceptable walking distance
-      mutate(Legend = "Buffer",count = 1) %>%
-      dplyr::select(commonpid, count))
-
-buffer_info <- 
-  st_intersection(house_Buffers, bus.sf) %>%
-  dplyr::select(commonpid, count)
-  
-
-buffer_final <- buffer_info %>%
-  group_by(commonpid) #%>%
-  summarize(.,"TotalBus" = sum(count))
-
-centers <- st_centroid(buffer_final)
-# Set size parameter and the size range for population
-ggplot() + 
-  geom_sf(data = tracts20, fill = "white") + 
-  geom_sf(data = centers, aes(size = TotalBus,fill = TotalBus,alpha = 1),shape = 21, 
-          show.legend = "point") + 
-  labs(title = "Graduated Symbol Maps of Bus within 0.5 Mile of Each House unit", 
-       #subtitle = "San Francisco, CA",
-       caption="Figure 1.1") +
-  guides(alpha = FALSE)+
-  guides(size = FALSE)+
-  scale_fill_viridis_c() +
-  facet_wrap(~year)+
-  geom_sf(data = bus.sf, size = 0.4) +
-  scale_size_continuous(range = c(0.1, 15))
-```
-
-```{r}
-
-buffer_rbind<-
-  st_drop_geometry(buffer_final) 
-
-testtest <- rbind.fill(mklb.sf, buffer_rbind) %>%
-  mutate_all(~replace(., is.na(.), 0))
-```
