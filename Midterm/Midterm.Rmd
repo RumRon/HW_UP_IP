@@ -445,54 +445,55 @@ Sort these variables by their category (internal characteristics, amenities/publ
 For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
 **Internal characteristics:**
 ```{r correlation_matrix}
-#internal features
-ggcorrplot(
-  round(cor(factor_internal), 1),
-  p.mat = cor_pmat(factor_internal),
-  colors = c('#05A167', "white", '#6897BB'),
-  type="lower",
-  insig = "blank") +
-    labs(title = "Correlation across numeric variables\n(internal features)\n",
-       caption = 'Figure DATA 2.2') +
-    plotTheme()
-
-#amenity features
-factor_amenity <-factor_amenity%>%filter(prisqft != 'Inf')
-ggcorrplot(
-  round(cor(factor_amenity), 1),
-  p.mat = cor_pmat(factor_amenity),
-  colors = c('#05A167', "white", '#6897BB'),
-  type="lower",
-  insig = "blank") +
-    labs(title = "Correlation across numeric variables\n(Amenity)\n",
-       caption = 'Figure DATA 2.3') +
-    plotTheme()
-
-ggcorrplot(
-  round(cor(factor_acs), 1),
-  p.mat = cor_pmat(factor_acs),
-  colors = c('#05A167', "white", '#6897BB'),
-  type="lower",
-  insig = "blank") +
-    labs(title = "Correlation across numeric variables\n(ACS)\n",
-       caption = 'Figure DATA 2.4')+
-    plotTheme()
-
-# factor_internal %>% 
-#   correlate() %>% 
-#   autoplot() +
-#   geom_text(aes(label = round(r,digits=2)),size = 2)
+# #internal features
+# ggcorrplot(
+#   round(cor(factor_internal), 1),
+#   p.mat = cor_pmat(factor_internal),
+#   colors = c('#05A167', "white", '#6897BB'),
+#   type="lower",
+#   insig = "blank") +
+#     labs(title = "Correlation across numeric variables\n(internal features)\n",
+#        caption = 'Figure DATA 2.2') +
+#     plotTheme()
 # 
+# #amenity features
+# factor_amenity <-factor_amenity%>%filter(prisqft != 'Inf')
+# ggcorrplot(
+#   round(cor(factor_amenity), 1),
+#   p.mat = cor_pmat(factor_amenity),
+#   colors = c('#05A167', "white", '#6897BB'),
+#   type="lower",
+#   insig = "blank") +
+#     labs(title = "Correlation across numeric variables\n(Amenity)\n",
+#        caption = 'Figure DATA 2.3') +
+#     plotTheme()
 # 
-# factor_acs %>% 
-#   correlate() %>% 
-#   autoplot() +
-#   geom_text(aes(label = round(r,digits=2)),size = 2)
-# 
-# factor_amenity %>% 
-#   correlate() %>% 
-#   autoplot() +
-#   geom_text(aes(label = round(r,digits=2)),size = 2)
+# ggcorrplot(
+#   round(cor(factor_acs), 1),
+#   p.mat = cor_pmat(factor_acs),
+#   colors = c('#05A167', "white", '#6897BB'),
+#   type="lower",
+#   insig = "blank") +
+#     labs(title = "Correlation across numeric variables\n(ACS)\n",
+#        caption = 'Figure DATA 2.4')+
+#     plotTheme()
+
+factor_internal %>%
+  correlate() %>%
+  autoplot()+
+  geom_text(aes(label = round(r,digits=2)),size = 2)
+  
+
+
+factor_acs %>%
+  correlate() %>%
+  autoplot() +
+  geom_text(aes(label = round(r,digits=2)),size = 2)
+
+factor_amenity %>%
+  correlate() %>%
+  autoplot() +
+  geom_text(aes(label = round(r,digits=2)),size = 2)
 
 ```
 
@@ -528,18 +529,18 @@ ggplot() +
 
 Develop 1 map of your dependent variable (sale price)
 ```{r sale price map}
-# Mapping data
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey50") +
-   geom_sf(data = topredict%>%filter(prisqft!= 'Inf'), aes(fill = (prisqft)), 
-          show.legend = "point", size = .25) +
-   
-    # scale_colour_manual(values = palette5,
-    #                labels=qBr(topredict,"PricePerSq"),
-    #                name="Quintile\nBreaks") +
-  scale_fill_viridis_c() +
-  labs(title="try") +
-  mapTheme()
+# # Mapping data
+# ggplot() +
+#   geom_sf(data = st_union(tracts20), fill = "grey50") +
+#    geom_sf(data = topredict%>%filter(prisqft!= 'Inf'), aes(fill = (prisqft)), 
+#           show.legend = "point", size = .25) +
+#    
+#     # scale_colour_manual(values = palette5,
+#     #                labels=qBr(topredict,"PricePerSq"),
+#     #                name="Quintile\nBreaks") +
+#   scale_fill_viridis_c() +
+#   labs(title="try") +
+#   mapTheme()
 ```
 ## 3 interesting maps
 Develop 3 maps of 3 of your most interesting independent variables.
@@ -550,9 +551,9 @@ ggplot() +
   geom_sf(data = st_union(tracts20), fill = "grey50") +
   geom_sf(data = factor_acs.sf, aes(colour = pctPoverty),
           show.legend = "point", size = .75) +
-  #scale_colour_manual(values = palette5,
-                   #labels=qBr(maphomeprice,"prisqft"),
-                  #name="Quintile\nBreaks") +
+  scale_colour_manual(values = palette5,
+                      labels=qBr(maphomeprice,"prisqft"),
+                      name="Quintile\nBreaks") +
   labs(title="Percentage of poverty, Mecklenburg County") +
   mapTheme()
 ```
@@ -596,7 +597,7 @@ hospital_nn1_expanded <- topredict %>%
 
 ggplot() + 
   geom_sf(data = st_union(tracts20),fill = '#E5E5E5') +
-  geom_sf(data = st_centroid(hospital_nn1_expanded),aes(color = q5(hospital_nn1.expanded)),size = .5) +
+  geom_sf(data = st_centroid(hospital_nn1_expanded),aes(color = hospital_nn1.expanded),size = .5) +
   # scale_color_manual(values = palette,
   #                    labels = qBr(hospital_nn1_expanded,'hospital_nn1.expanded'),
   #                    name = "Average Distrance\nto Nearest Hospital\n(timed by 1000 \nfor better visualization)\n") +
@@ -617,8 +618,8 @@ inTrain <- caret::createDataPartition(
   p = .60, list = FALSE)
 
 # split data into training and test
-model.training <- topredict_num[inTrain,]
-model.test <- topredict_num[-inTrain,] 
+model.training <- topredict[inTrain,]
+model.test <- topredict[-inTrain,] 
 
 ## First model: All internal features, amenity features
 model1 <- lm(price ~ ., data = st_drop_geometry(model.training) %>% 
@@ -636,7 +637,7 @@ stargazer(model1, type = "html",
 ```
 
 ```{r model2}
-model2 <- lm(price ~ ., data = model.training %>% 
+model2 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
            dplyr::select(# internal features
                          price, prisqft, age, storyheigh,heatedarea,
                          numfirepla, fullbaths,halfbaths,bedrooms,
@@ -750,6 +751,24 @@ ggplot(, aes(x = actual, y = pred, color = source)) +
 ```
 ## Residuals Map w/ Moran's I
 ```{r moranTest}
+coords <- st_coordinates(all.sf) 
+
+neighborList <- knn2nb(knearneigh(coords, 5))
+
+spatialWeights <- nb2listw(neighborList, style="W")
+
+all.sf$lagPrice <- lag.listw(spatialWeights, all.sf$price)
+
+coords.test <-  st_coordinates(model.test) 
+
+neighborList.test <- knn2nb(knearneigh(coords.test, 5))
+
+spatialWeights.test <- nb2listw(neighborList.test, style="W")
+ 
+model.test %>% 
+  mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error)) %>%
+  ggplot(aes(lagPriceError, SalePrice.Error))
+
 moranTest <- moran.mc(model.test$SalePrice.Error, 
                       spatialWeights.test, nsim = 999)
 
