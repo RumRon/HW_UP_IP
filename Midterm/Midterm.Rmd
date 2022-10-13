@@ -627,7 +627,7 @@ ggplot() +
 set.seed(42)
 
 inTrain <- caret::createDataPartition(
-  y = paste(topredict$commonpid,topredict$price, topredict$name),
+  y = paste(topredict$name,topredict$price),
   p = .60, list = FALSE)
 
 # split data into training and test
@@ -652,14 +652,14 @@ stargazer(model1, type = "html",
 ```{r model2}
 model2 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
            dplyr::select(# internal features
-                         price, age, storyheigh,heatedarea,name, #prisqft,
+                         price, age, storyheigh,heatedarea, #prisqft,
                          numfirepla, fullbaths,halfbaths,bedrooms,
                          units,
                          # amenity features
                          police_nn1,police_nn2,police_nn3,school_nn1,
                          school_nn2,school_nn3,church_nn1,church_nn2,
-                         church_nn3,park_nn1,park_nn3,firestation_nn2,
-                         firestation_nn3,medical_nn2,medical_nn3,
+                         church_nn3,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn1,
                          #acs
                          pctWhite,pctBachelors,pctPoverty,MedHHInc,
                          Singleadult,Healthins,Familyincome
@@ -787,7 +787,7 @@ neighborList.test <- knn2nb(knearneigh(coords.test, 5))
 spatialWeights.test <- nb2listw(neighborList.test, style="W")
 
 model.test %>%
-  mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error, NAOK=TRUE))
+  mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error,NAOK =TRUE))
 
 #morantest
 
