@@ -489,14 +489,27 @@ st_drop_geometry(mklb.sf) %>%
      plotTheme()
 ```
 ## Map Home Prices
+```{r}
+maphomeprice <-topredict%>%filter(prisqft!= 'Inf')
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = maphomeprice, aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .75) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(maphomeprice,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price Per Square Foot, Mecklenburg County") +
+  mapTheme()
+```
 
 Develop 1 map of your dependent variable (sale price)
 ```{r sale price map}
 # Mapping data
 ggplot() +
   geom_sf(data = st_union(tracts20), fill = "grey50") +
-   geom_sf(data = topredict, aes(colour = (prisqft)), 
+   geom_sf(data = topredict%>%filter(prisqft!= 'Inf'), aes(fill = (prisqft)), 
           show.legend = "point", size = .25) +
+   
     # scale_colour_manual(values = palette5,
     #                labels=qBr(topredict,"PricePerSq"),
     #                name="Quintile\nBreaks") +
