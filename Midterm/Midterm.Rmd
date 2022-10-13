@@ -675,8 +675,40 @@ reg.cv$resample %>%
        caption = "Figure RESULT") +
   plotTheme()
 ```
-## Residuals Map w/ Moran's I
+```{r p, eval=FALSE, include=FALSE}
 
+## Overall Plotting 这段没啥用现在我随便放的
+ggplot(, aes(x = actual, y = pred, color = source)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "darkblue") +
+  geom_abline(color = "orange") +
+  coord_equal() +
+  theme_bw() +
+  labs(title = "Predicted Prices as a\nFunction of Observed Prices",
+       subtitle = 'Blue line is model regression line\nwhile orange line is reference line\n',
+       caption = 'Figure RESULT 5.1',
+       x = "Observed Prices",
+       y = "Predicted Prices") +
+  theme(
+    legend.position = "none"
+  ) +
+  plotTheme()
+```
+## Residuals Map w/ Moran's I
+```{r moranTest}
+moranTest <- moran.mc(model.test$SalePrice.Error, 
+                      spatialWeights.test, nsim = 999)
+
+ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
+  geom_histogram(binwidth = 0.01) +
+  geom_vline(aes(xintercept = moranTest$statistic), colour = "#FA7800",size=1) +
+  scale_x_continuous(limits = c(-1, 1)) +
+  labs(title="Observed and permuted Moran's I",
+       subtitle= "Observed Moran's I in orange",
+       x="Moran's I",
+       y="Count") +
+  plotTheme()
+```
 ## Predicted Map (Test Set)
 
 ## MAPE map by neighborhood
@@ -696,7 +728,9 @@ Would you recommend your model to Zillow? Why or why not? How might you improve 
 
 
 
-
+```{r atesttest}
+plot_summs(model1, scale = TRUE)
+```
 
 ```{r g_symbol_map_population,warning = FALSE, message = FALSE}
 # Generate point centers
