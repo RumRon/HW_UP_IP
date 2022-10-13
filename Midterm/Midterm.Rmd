@@ -430,10 +430,11 @@ ggcorrplot(
   type="lower",
   insig = "blank") +
     labs(title = "Correlation across numeric variables\n(internal features)\n",
-       caption = 'Figure DATA 3.1') +
+       caption = 'Figure DATA 2.2') +
     plotTheme()
 
 #amenity features
+factor_amenity <-factor_amenity%>%filter(prisqft != 'Inf')
 ggcorrplot(
   round(cor(factor_amenity), 1),
   p.mat = cor_pmat(factor_amenity),
@@ -441,7 +442,7 @@ ggcorrplot(
   type="lower",
   insig = "blank") +
     labs(title = "Correlation across numeric variables\n(Amenity)\n",
-       caption = 'Figure DATA 3.2') +
+       caption = 'Figure DATA 2.3') +
     plotTheme()
 
 ggcorrplot(
@@ -451,7 +452,7 @@ ggcorrplot(
   type="lower",
   insig = "blank") +
     labs(title = "Correlation across numeric variables\n(ACS)\n",
-       caption = 'Figure DATA 3.1')+
+       caption = 'Figure DATA 2.4')+
     plotTheme()
 
 # factor_internal %>% 
