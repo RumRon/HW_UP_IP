@@ -598,18 +598,6 @@ model2 <- lm(price ~ ., data = model.training %>%
                          )
           
 )
-
-stargazer(model2, type = "html", 
-          title = "Table 4.1.2 Summary Statistics of Model 2 ",
-          header = FALSE,
-          out = "model2.html",
-          single.row = TRUE)
-
-```
-## Table of results (training set)
-
-## Table of goodness of fit (test set)
-```{r test}
 model.test <-
   model.test %>%
   mutate(SalePrice.Predict = predict(model2, model.test),
@@ -617,6 +605,28 @@ model.test <-
          SalePrice.AbsError = abs(SalePrice.Predict - price),
          SalePrice.APE = (abs(SalePrice.Predict - price)) / SalePrice.Predict)%>%
   filter(price < 5000000)
+
+
+```
+## Table of results (training set)
+```{r resultsmodel}
+stargazer(model2, type = "html", 
+          title = "Table 4.1.2 Summary Statistics of Model 2 ",
+          header = FALSE,
+          out = "model2.html",
+          single.row = TRUE)
+
+```
+## Table of goodness of fit (test set)
+```{r fit}
+test_fit<-as.data.frame(cbind(mean(model.test$SalePrice.AbsError,na.rm = T),
+                              mean(model.test$SalePrice.APE,na.rm = T)))
+colnames(test_fit)<-c("Mean Absolute Errors (MAE)","MAPE")
+kable(test_fit,
+      caption = 'Table RESULT. MAE and MAPE for Test Set') %>%
+  kable_styling("striped", full_width = F)
+
+```
 ```
 ## CV Results
 
