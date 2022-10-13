@@ -730,7 +730,7 @@ reg.cv$resample %>%
        caption = "Figure RESULT") +
   plotTheme()
 ```
-```{r p, eval=FALSE, include=FALSE}
+```{r delete, eval=FALSE, include=FALSE}
 
 ## Overall Plotting 这段没啥用现在我随便放的
 ggplot(, aes(x = actual, y = pred, color = source)) +
@@ -766,12 +766,12 @@ neighborList.test <- knn2nb(knearneigh(coords.test, 5))
 spatialWeights.test <- nb2listw(neighborList.test, style="W")
 
 model.test %>%
-  mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error))
+  mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error, NAOK=TRUE))
 
+#morantest
 
-
-moranTest <- moran.mc(model.test$SalePrice.Error, 
-                      spatialWeights.test, nsim = 999)
+moranTest <- moran.mc(model.test$SalePrice.Error, zero.policy=TRUE, #zero.policy make code runs, but the neighbor is empty
+                      spatialWeights.test, nsim = 999,na.action=na.omit)
 
 ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
   geom_histogram(binwidth = 0.01) +
@@ -783,6 +783,7 @@ ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
        y="Count") +
   plotTheme()
 ```
+
 ## Predicted Map (Test Set)
 
 ## MAPE map by neighborhood
