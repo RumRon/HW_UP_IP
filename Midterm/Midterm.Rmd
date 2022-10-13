@@ -544,7 +544,7 @@ Develop 1 map of your dependent variable (sale price)
 ```
 ## 3 interesting maps
 Develop 3 maps of 3 of your most interesting independent variables.
-```{r}
+```{r eval=FALSE, include=FALSE}
 # plot map of poverty
 
 ggplot() +
@@ -622,7 +622,7 @@ model.training <- topredict[inTrain,]
 model.test <- topredict[-inTrain,] 
 
 ## First model: All internal features, amenity features
-model1 <- lm(price ~ ., data = st_drop_geometry(model.training) %>% 
+model1 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
            dplyr::select(colnames(factor_internal), 
                          colnames(factor_amenity),
                          colnames(factor_acs)
@@ -690,7 +690,7 @@ fitControl <- trainControl(method = "cv", number = 100)
 set.seed(42)
 
 reg.cv <- 
-  train(price ~ ., data = st_drop_geometry(topredict_num) %>% 
+  train(price ~ ., data = st_drop_geometry(topredict) %>% 
           dplyr::select(colnames(factor_internal), 
                         colnames(factor_amenity),
                         colnames(factor_acs)),
