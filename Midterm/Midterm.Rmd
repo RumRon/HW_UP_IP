@@ -371,10 +371,14 @@ ACS2 <- tracts20%>%
 factor_acs <-st_join(ACS1, ACS2) %>%
   distinct(geometry, .keep_all = TRUE)
 
+all.sf <-st_join(mklb.sf,ACS2) #%>%
+  #distinct(geometry, .keep_all = TRUE)
+
 factor_acs <-factor_acs%>%filter(prisqft!= 'Inf')
 
 factor_acs <-
   select_if(st_drop_geometry(factor_acs), is.numeric) %>% na.omit()
+
 
 
 star_internal <- st_drop_geometry(factor_internal)
@@ -400,7 +404,24 @@ stargazer(star_acs, type = "text",
           single.row = TRUE)
 ```
           
-          
+```{r echo=TRUE}
+
+topredict <-
+  all.sf%>%
+  filter(toPredict!="CHALLENGE") %>%
+  filter(prisqft!= 'Inf')
+
+topredict_num <-
+  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
+
+challenge <-
+  all.sf%>%
+  filter(toPredict=="CHALLENGE")
+
+challenge_num<-
+  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
+```
+
           
 Present a table of summary statistics with variable descriptions. 
 Sort these variables by their category (internal characteristics, amenities/public services or spatial structure). Check out the `stargazer` package for this.
@@ -531,22 +552,6 @@ ggplot() +
   plotTheme()
 ```
 
-```{r echo=TRUE}
-topredict <-
-  mklb.sf%>%
-  filter(toPredict!="CHALLENGE") %>%
-  filter(prisqft!= 'Inf')
-
-topredict_num <-
-  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
-
-challenge <-
-  mklb.sf%>%
-  filter(toPredict=="CHALLENGE")
-
-challenge_num<-
-  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
-```
 
 
 ```{r }
