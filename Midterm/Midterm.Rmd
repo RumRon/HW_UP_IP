@@ -368,8 +368,8 @@ ACS1 <- mklb.sf%>%
 ACS2 <- tracts20%>%
   dplyr::select(pctWhite, pctBachelors, pctPoverty, TotalPop, MedHHInc, Singleadult, Healthins, Familyincome, Housingunits, Househeatingfuel)
 
-factor_acs <-st_join(ACS1, ACS2) %>%
-  distinct(geometry, .keep_all = TRUE)
+factor_acs <-st_join(ACS1, ACS2) #%>%
+  #distinct(geometry, .keep_all = TRUE)
 
 all.sf <-st_join(mklb.sf,ACS2) #%>%
   #distinct(geometry, .keep_all = TRUE)
@@ -554,7 +554,7 @@ ggplot() +
 
 
 
-```{r }
+```{r model1}
 
 # set.seed(42)
 # 
@@ -575,7 +575,7 @@ model1 <- lm(price ~ ., data = topredict_num %>%
 
 stargazer(model1, type = "html", 
           title = "Table 4.1.1 Summary Statistics of Model 1 ",
-          out = "test.html",
+          out = "model1.html",
           header = FALSE,
           single.row = TRUE)
 
@@ -586,20 +586,26 @@ model2 <- lm(price ~ ., data = topredict_num %>%
            dplyr::select(# internal features
                          price, prisqft, age, storyheigh,heatedarea,
                          numfirepla, fullbaths,halfbaths,bedrooms,
+                         units,
                          # amenity features
                          police_nn1,police_nn2,police_nn3,school_nn1,
                          school_nn2,school_nn3,church_nn1,church_nn2,
-                         church_nn3,park_nn3,firestation_nn2,
-                         firestation_nn3,medical_nn1,medical_nn2)
+                         church_nn3,park_nn1,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn2,medical_nn3,
+                         #acs
+                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
+                         Singleadult,Healthins,Familyincome
+                         )
+          
 )
 
 stargazer(model2, type = "html", 
           title = "Table 4.1.2 Summary Statistics of Model 2 ",
           header = FALSE,
-          out = "model2.html"
+          out = "model2.html",
           single.row = TRUE)
 
-
+```
 ## Table of results (training set)
 
 ## Table of goodness of fit (test set)
