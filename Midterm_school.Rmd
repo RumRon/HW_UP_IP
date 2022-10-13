@@ -60,6 +60,9 @@ primary.data<-
 
 ```
 
+```{r}
+neighborhood <-
+```
 
 ```{r split_data}
 primary.data<-
@@ -95,7 +98,11 @@ dplyr::select(-lot_num, -nc_pin, -condo_town, -parcel_typ, -commonpid,
                 -houseno,-houseunit,-stdir,-stname,-sttype,-stsuffix,
                 -codemunici,-municipali,-mailaddr1,-mailaddr2,-city,-state,-zipcode)
 
-
+```{r}
+neighborhood <-
+  st_read('https://raw.githubusercontent.com/RumRon/HW_UP_IP/main/Midterm/geojson/Subdivisions.geojson')%>%
+  st_transform('EPSG:2264')
+```
 
 ```{r school}
 #school data
@@ -310,21 +317,93 @@ We sort these variables by their category (internal characteristics, amenities/p
 ## 2.3 Correlation Matrix
 For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
 **Internal characteristics:**
-```{r correlation_matrix}
-#internal features
-internal_feature <- mklb.sf%>%
-  dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
-                fullbaths,halfbaths,bedrooms,units,prisqft)
-  
-internal_feature <-internal_feature%>%filter(prisqft!= 'Inf')
 
-internal_feature <-
-  select_if(st_drop_geometry(internal_feature), is.numeric) %>% na.omit() # check
+```{r}
+# Copy this chunk in the midterm
+#internal
+factor_internal <- mklb.sf%>%
+  dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
+                fullbaths,halfbaths,bedrooms,units,prisqft) %>%
+  filter(prisqft!= 'Inf') 
+
+factor_internal.sf <- factor_internal
+
+factor_internal <-
+  select_if(st_drop_geometry(factor_internal), is.numeric)  %>% na.omit()
+#amentities
+factor_amenity <- mklb.sf%>%
+  dplyr::select(price,prisqft,police_nn1, police_nn2, police_nn3, school_nn1, school_nn2,  school_nn3, church_nn1, church_nn2, church_nn3, park_nn1, park_nn2, park_nn3,firestation_nn1, firestation_nn2, firestation_nn3, medical_nn1, medical_nn2, medical_nn3,police_nn1, police_nn2, police_nn3)
+
+factor_amenity <- factor_amenity%>%filter(prisqft!= 'Inf')
+  # dplyr::select(-commonpid,-age,-storyheigh,-heatedarea,-numfirepla,-totalac,
+  #                -fullbaths,-halfbaths,-bedrooms,-units)
+
+factor_amenity.sf <- factor_amenity
+factor_amenity <-
+  select_if(st_drop_geometry(factor_amenity), is.numeric)  %>% na.omit()
+#ACS
+ACS1 <- mklb.sf%>%
+  dplyr::select(price,prisqft)
+
+ACS2 <- tracts20%>%
+  dplyr::select(pctWhite, pctBachelors, pctPoverty, TotalPop, MedHHInc, Singleadult, Healthins, Familyincome, Housingunits, Househeatingfuel)
+
+factor_acs <-st_join(ACS1, ACS2) #%>%
+  #distinct(geometry, .keep_all = TRUE)
+
+factor_acs <-factor_acs%>%filter(prisqft!= 'Inf')
+factor_acs.sf <- factor_acs
+factor_acs <-
+  select_if(st_drop_geometry(factor_acs), is.numeric) %>% na.omit()
+
+
+star_internal <- st_drop_geometry(factor_internal)
+star_amenity <- st_drop_geometry(factor_amenity)
+star_acs <- st_drop_geometry(factor_acs)
+
+stargazer(star_internal, type = "text", 
+          title = "Table DATA 2.1 Summary Statistics of Internal Characteristics ",
+          header = FALSE,
+          #out = "try.html",
+          single.row = TRUE)
+
+stargazer(star_amenity, type = "text",
+          title = "Table DATA 2.2 Summary Statistics of Amenities Characteristics ",
+          header = FALSE,
+          #out = "try.html",
+          single.row = TRUE)
+
+stargazer(star_acs, type = "text",
+          title = "Table DATA 2.3 Summary Statistics of ACS ",
+          header = FALSE,
+          #out = "try.html",
+          single.row = TRUE)
+```
+
+
+```{r correlation_matrix}
+
+factor_internal <- mklb.sf%>%
+  dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
+                fullbaths,halfbaths,bedrooms,units,prisqft) %>%
+  filter(prisqft!= 'Inf') 
+factor_internal.sf <- factor_internal
+factor_internal <-
+  select_if(st_drop_geometry(factor_internal), is.numeric)  %>% na.omit()
+#internal features
+#internal_feature <- mklb.sf%>%
+ # dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
+                #fullbaths,halfbaths,bedrooms,units,prisqft)
+  
+#internal_feature <-internal_feature%>%filter(prisqft!= 'Inf')
+
+#internal_feature2 <-
+#  select_if(st_drop_geometry(internal_feature), is.numeric) %>% na.omit() # check
 # look numeric, factors, check variable ->
 
 ggcorrplot(
-  round(cor(internal_feature), 1), 
-  p.mat = cor_pmat(internal_feature),
+  round(cor(factor_internal), 1), 
+  p.mat = cor_pmat(factor_internal),
   colors = c('#05A167', "white", '#6897BB'),
   type="lower",
   insig = "blank") +  
@@ -355,6 +434,8 @@ ggcorrplot(
     plotTheme()
 ```
 
+
+
 ```{r}
 # ACS data
 Matrix_ACS1 <- mklb.sf%>%
@@ -363,17 +444,16 @@ Matrix_ACS1 <- mklb.sf%>%
 Matrix_ACS2 <- tracts20%>%
   dplyr::select(pctWhite, pctBachelors, pctPoverty, TotalPop, MedHHInc, Singleadult, Healthins, Familyincome, Housingunits, Househeatingfuel)
 
-Matrix_ACS <-st_join(Matrix_ACS1, Matrix_ACS2) %>%
-  distinct(geometry, .keep_all = TRUE)
+factor_acs <-st_join(Matrix_ACS1, Matrix_ACS2) 
 
-Matrix_ACS <-Matrix_ACS%>%filter(prisqft!= 'Inf')
+factor_acs <-factor_acs%>%filter(prisqft!= 'Inf')
 
-Matrix_ACS <-
-  select_if(st_drop_geometry(Matrix_ACS), is.numeric) %>% na.omit()
+factor_acss <-
+  select_if(st_drop_geometry(factor_acs), is.numeric) %>% na.omit()
 
 ggcorrplot(
-  round(cor(Matrix_ACS), 1), 
-  p.mat = cor_pmat(Matrix_ACS),
+  round(cor(factor_acss), 1), 
+  p.mat = cor_pmat(factor_acss),
   colors = c('#05A167', "white", '#6897BB'),
   type="lower",
   insig = "blank") +  
@@ -392,9 +472,50 @@ Through graphs below, it is obvious that the first three of four features are po
 
 
 ## 2.5 Map Home Prices
-Develop 1 map of your dependent variable (sale price)
-## 3 interesting maps
+The sale price per SqFt in Mecklenburg County shows a clear spatial pattern. The sale price in Miami Beach and Downtown Miami is significantly higher than other areas.
+
+## 2.6 interesting maps
 Develop 3 maps of 3 of your most interesting independent variables.
+```{r}
+# plot map of poverty
+
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = factor_acs.sf, aes(colour = pctPoverty),
+          show.legend = "point", size = .75) +
+  #scale_colour_manual(values = palette5,
+                   #labels=qBr(maphomeprice,"prisqft"),
+                  #name="Quintile\nBreaks") +
+  labs(title="Percentage of poverty, Mecklenburg County") +
+  mapTheme()
+```
+```{r}
+# plot map of age
+factor_internal.sf<-factor_internal.sf%>%filter(age != 2022)
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = factor_internal.sf, aes(colour = age),
+          show.legend = "point", size = .75) +
+  #scale_colour_manual(values = palette5,
+                   #labels=qBr(maphomeprice,"prisqft"),
+                   #name="Quintile\nBreaks") +
+  labs(title="Housing age in Mecklenburg County") +
+  mapTheme()
+```
+
+```{r}
+# plot map of park
+
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = factor_amenity.sf, aes(colour = park_nn1),
+          show.legend = "point", size = .75) +
+  #scale_colour_manual(values = palette5,
+                   #labels=qBr(maphomeprice,"prisqft"),
+                   #name="Quintile\nBreaks") +
+  labs(title="Distribution of average distance to nearest park in Mecklenburg County") +
+  mapTheme()
+```
 ## This criterion is linked to a Learning OutcomeBonus for something extra engaging
 Include any other maps/graphs/charts you think might be of interest.
 
