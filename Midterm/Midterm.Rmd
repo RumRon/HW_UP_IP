@@ -556,18 +556,18 @@ ggplot() +
 
 ```{r model1}
 
-# set.seed(42)
-# 
-# inTrain <- caret::createDataPartition(
-#   y = paste(mklb.sf$commonpid,mklb.sf$price ), 
-#   p = .60, list = FALSE)
+set.seed(42)
+
+inTrain <- caret::createDataPartition(
+  y = paste(topredict_num$commonpid,topredict_num$price ),
+  p = .60, list = FALSE)
 
 # split data into training and test
-model.training <- topredict_num
-model.test <- challenge_num
+model.training <- topredict_num[inTrain,]
+model.test <- topredict_num[-inTrain,] 
 
 ## First model: All internal features, amenity features
-model1 <- lm(price ~ ., data = topredict_num %>% 
+model1 <- lm(price ~ ., data = st_drop_geometry(model.training) %>% 
            dplyr::select(colnames(factor_internal), 
                          colnames(factor_amenity),
                          colnames(factor_acs)
@@ -581,8 +581,8 @@ stargazer(model1, type = "html",
 
 ```
 
-```{r }
-model2 <- lm(price ~ ., data = topredict_num %>% 
+```{r model2}
+model2 <- lm(price ~ ., data = model.training %>% 
            dplyr::select(# internal features
                          price, prisqft, age, storyheigh,heatedarea,
                          numfirepla, fullbaths,halfbaths,bedrooms,
@@ -609,7 +609,15 @@ stargazer(model2, type = "html",
 ## Table of results (training set)
 
 ## Table of goodness of fit (test set)
-
+```{r test}
+model.test <-
+  model.test %>%
+  mutate(SalePrice.Predict = predict(model2, model.test),
+         SalePrice.error = SalePrice.Predict - price,
+         SalePrice.AbsError = abs(SalePrice.Predict - price),
+         SalePrice.APE = (abs(SalePrice.Predict - price)) / SalePrice.Predict)%>%
+  filter(price < 5000000)
+```
 ## CV Results
 
 ## Pred vs Obs Scatterplot
