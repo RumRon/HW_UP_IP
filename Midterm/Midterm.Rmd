@@ -1136,8 +1136,6 @@ Is this an effective model? What were some of the more interesting variables?  H
 Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
 
 
-# VII Challenge
-
 
 
 
