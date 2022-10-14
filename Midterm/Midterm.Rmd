@@ -8,7 +8,10 @@ output:
     toc_float: true
     code_folding: hide
 ---
-
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
 # I. Introduction
 Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
 This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
@@ -355,9 +358,6 @@ ggplot() + geom_sf(data = tracts20, fill = "grey40") +
 ```
 
 
-
-
-
 ## 2.2 Summary Statistics
 Present a table of summary statistics with variable descriptions. 
 We sort these variables by their category (internal characteristics, amenities/public services or spatial structure).
@@ -630,19 +630,19 @@ ggplot() +
 Method:
 The mean objective of this analysis is to train a robust model to predict house price as accurately as possible. Accordingly, this section started to provide a detailed interpretation on the process of the model building and training.
 
-Here are three models used in this part.
-`model1`: the primitive model, where all the facotrs are in. 
-`model2 `: the model after training, with the facotrs selected.
-`model3`: the model to figure out the 'challenge'
+Here are three models used in this part.  
+`model1`: the primitive model, where all the facotrs are in.   
+`model2 `: the model after training, with the facotrs selected.  
+`model3`: the model to figure out the 'challenge'  
 
 
 data，model, feature, result(map).   why you interprete it
 <p style="text-indent:32px;">
-**•	Data and Sample:** In order to accurately build and test models, we randomly split the whole into two parts: with 60% of observations for model training and with 40% of observations for model testing. 
-**•	Dependent Variable:** The dependent variable is home sale price: *Price*
+**•	Data and Sample:** In order to accurately build and test models, we randomly split the whole into two parts: with 60% of observations for model training and with 40% of observations for model testing.   
+**•	Dependent Variable:** The dependent variable is home sale price: *Price*  
 **•	Independent Variables:** Based on the hedonic home price model, potential features should encompass at least three components: internal characteristics, like the number of bathrooms; neighborhood amenities/public services, like hospital accessibility; and the underlying spatial process of prices.Plus, we also take the ACS data into consideration. 
 
-After creating features and engineering and checking correlation coefficients(in `model1`), *38* features are eligible for the model and obviously or slightly correlated with that were the initial independent variables for model building.  In further modifications of the model, we mainly considered p-values in determining the correlation of variables and removed the values with larger p-values:*totalac, park_nn1, park_nn2, firestation_nn1, medical_nn1, TotalPop*. We gradually screened out variables and eventually selected only *32* robust features included in the final model `model2`.
+After creating features and engineering and checking correlation coefficients(in `model1`), *38* features are eligible for the model and obviously or slightly correlated with that were the initial independent variables for model building.  In further modifications of the model, we mainly considered p-values in determining the correlation of variables and removed the values with larger p-values:*totalac, park_nn1, park_nn2, firestation_nn1, medical_nn1, TotalPop*. We gradually screened out variables and eventually selected only *32* robust features included in the final model `model2`.  
 
 
 **•	Procedure:** The primitive approach used in this analysis for model building is Ordinary Least Squares Regression (OLS) which is aimed at predicting the of houses as a function of several statistical parameters such as intercept, slope and selected features. 
@@ -683,7 +683,7 @@ model1 <- lm(price ~ ., data = as.data.frame(model.training) %>%
 
 stargazer(model1, type = "html", 
            title = "Table 4.1.1 Summary Statistics of Model 1 ",
-           out = "model1.html",
+           #out = "model1.html",
            header = FALSE,
            single.row = TRUE)
 
@@ -723,7 +723,7 @@ model.test <-
 stargazer(model2, type = "html", 
           title = "Table 4.1.2 Summary Statistics of Model 2 ",
           header = FALSE,
-          out = "model2.html",
+          #out = "model2.html",
           single.row = TRUE)
 
 ```
