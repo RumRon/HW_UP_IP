@@ -980,7 +980,8 @@ Is this an effective model? What were some of the more interesting variables?  H
 # Conclusion
 Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
 
-#
+# Challenge
+
 ```{r comp_model, eval=FALSE, include=FALSE}
 model3 <- lm(price ~ ., data = as.data.frame(topredict) %>% 
            dplyr::select(# internal features
@@ -1025,7 +1026,4 @@ ggplot() +
   mapTheme()
 ```
 
-```{r atesttest}
-plot_summs(model2, scale = TRUE)
-```
 
