@@ -1,0 +1,941 @@
+---
+title: "Predicting Housing Prices for Mecklenberg County, NC - MUSA508 Midterm"
+author: "Rui Jiang, Jingyi Cai"
+date: '2022-09-25'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup}
+#set some global options for knitting chunks
+
+#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	warning = FALSE,
+	message = FALSE
+)
+# Load some libraries
+
+library(tidyverse)
+library(sf)
+library(spdep)
+library(caret)
+library(ckanr)
+library(FNN)
+library(grid)
+library(gridExtra)
+library(ggcorrplot) # plot correlation plot
+library(corrr)      # another way to plot correlation plot
+library(kableExtra)
+library(jtools)     # for regression model plots
+library(ggstance) # to support jtools plots
+library(ggpubr)    # plotting R^2 value on ggplot point scatter
+library(broom.mixed) # needed for effects plots
+library(tidycensus)
+library(geojsonio)
+library(stargazer)
+library(utils)
+library(rgdal)
+#library(plyr)
+
+# functions and data directory
+root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
+
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+
+palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
+
+```
+
+
+```{r read_data, echo=TRUE}
+primary.data<-
+  st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
+  st_transform('EPSG:2264')
+```
+
+
+
+```{r split_data, include=FALSE}
+primary.data<-
+  primary.data%>%
+  filter(price<10000000)
+
+mklb.sf <- 
+  primary.data %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 2264, agr = "constant") %>%
+  st_transform('EPSG:2264') %>%
+  mutate(storyheigh = as.numeric(gsub(" STORY", "", primary.data$storyheigh))
+  )
+
+mklb.sf<-
+  mklb.sf %>%
+  mutate(age=2022-yearbuilt,prisqft =price/heatedarea)%>%
+  dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
+                fullbaths,halfbaths,bedrooms,units,toPredict,prisqft)
+
+numericVars <- 
+  select_if(st_drop_geometry(mklb.sf), is.numeric) %>% na.omit()  
+
+```
+
+
+
+```{r read amentity data}
+
+#school data
+cmpd_school<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMS_Schools.geojson') %>%
+  st_transform('EPSG:2264')
+
+# firestation
+cmpd_firestation<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CFD_FireStations.geojson') %>%
+  st_transform('EPSG:2264')
+
+# church
+cmpd_church<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Churches.geojson') %>%
+  st_transform('EPSG:2264')
+
+# medical facilities
+cmpd_medical<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/MedicalFacilities.geojson') %>%
+  st_transform('EPSG:2264')
+# park
+cmpd_park<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/Park_Locations.geojson') %>%
+  st_transform('EPSG:2264')
+# police
+cmpd_police<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CMPD_Police_Offices.geojson') %>%
+  st_transform('EPSG:2264')
+
+# bus
+cmpd_busstation<-
+  st_read('https://raw.githubusercontent.com/RumRon/MUSA_508/main/Midterm/geojson/CATS_BusStops.geojson') %>%
+  st_transform('EPSG:2264')
+
+#neighborhood
+neighborhood <-
+  st_read('https://raw.githubusercontent.com/RumRon/HW_UP_IP/main/Midterm/geojson/Subdivisions.geojson')%>%
+  st_transform('EPSG:2264')
+
+```
+
+
+
+```{r turn to sf}
+
+police.sf <-
+  cmpd_police %>%
+    dplyr::select(name) %>%
+    #na.omit() %>%
+    st_zm(drop = TRUE) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+bus.sf<-
+  cmpd_busstation %>%
+    dplyr::select(StopID) %>%
+    na.omit() %>%
+    st_zm(drop = TRUE) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+church.sf<-
+  cmpd_church %>%
+    dplyr::select(num_parent) %>%
+    #na.omit() %>%
+    st_zm(drop = TRUE) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+
+firestation.sf<-
+  cmpd_firestation %>%
+    dplyr::select(NAME) %>%
+    #na.omit() %>%
+    st_zm(drop = TRUE) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+medical.sf<-
+  cmpd_medical %>%
+    dplyr::select(Name) %>%
+    #na.omit() %>%
+    st_zm(drop = TRUE) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+park.sf<-
+  cmpd_park %>%
+    dplyr::select(prkname) %>%
+    #na.omit() %>%
+    st_zm(drop = TRUE) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+school.sf<-
+  cmpd_school %>%
+    dplyr::select(school) %>%
+    #na.omit() %>%
+    st_zm(drop = TRUE) %>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+    st_transform('EPSG:2264') %>%
+    distinct()
+
+nhood.sf<-
+  subset(neighborhood,name != "NA") %>%
+  dplyr::select(name) %>%
+  #filter(name != NA)%>%
+  st_zm(drop = TRUE) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = "EPSG:2264") %>%
+  st_transform('EPSG:2264') %>%
+  distinct()
+  
+
+
+```
+
+
+
+```{r to_k}
+mklb.sf <- 
+  mklb.sf %>% 
+     mutate(
+       police_nn1 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 1),
+       police_nn2 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 2),
+       police_nn3 = nn_function(st_coordinates(mklb.sf), 
+                                st_coordinates(police.sf), k = 3),
+       school_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(school.sf), k = 1),
+       school_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(school.sf), k = 2),
+       school_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(school.sf), k = 3),
+       park_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(park.sf), k = 1),
+       park_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(park.sf), k = 2),
+       park_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(park.sf), k = 3),
+       firestation_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(firestation.sf), k = 1),
+       firestation_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(firestation.sf), k = 2),
+       firestation_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(firestation.sf), k = 3),
+       church_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(church.sf), k = 1),
+       church_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(church.sf), k = 2),
+       church_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(church.sf), k = 3),
+       medical_nn1 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(medical.sf), k = 1),
+       medical_nn2 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(medical.sf), k = 2),
+       medical_nn3 = nn_function(st_coordinates(mklb.sf), 
+                              st_coordinates(medical.sf), k = 3))
+
+mklb.sf <-st_join(mklb.sf, nhood.sf)
+
+
+```
+
+
+```{r read tracts}
+# acs
+acs_variable_list.20 <- load_variables(2020, #year
+                                         "acs5", #five year ACS estimates
+                                         cache = TRUE)
+tracts20 <- 
+  get_acs(geography = "tract", variables = c("B25026_001E","B02001_002E","B15001_050E",
+                                             "B15001_009E","B19013_001E","B25058_001E",
+                                             "B06012_002E","B28010_007E","B08101_001E",
+                                             "B09001_001E","B09001_003E","B09021_002E",
+                                             "B11001I_001E", "B14001_009E",
+                                             "B17001_002E","B27001_001E","B18101_001E",
+                                             "B19001_001E","B25001_001E","B25040_001E"), 
+          year=2020, state=37, county=119, geometry=T, output="wide") %>%
+  st_transform('EPSG:2264') %>%
+  mutate(TotalPop = B25026_001E, 
+         Whites = B02001_002E,
+         FemaleBachelors = B15001_050E, 
+         MaleBachelors = B15001_009E,
+         MedHHInc = B19013_001E, 
+         MedRent = B25058_001E,
+         TotalPoverty = B06012_002E,
+         Nocom = B28010_007E, 
+         Waytowork = B08101_001E,
+         Popunder18 = B09001_001E, 
+         Popunder3 = B09001_003E,
+         Singleadult = B09021_002E, 
+         Householdtype = B11001I_001E,
+         Addmittogra = B14001_009E,
+         Poverty  = B17001_002E,
+         Healthins  = B27001_001E,
+         Disable  = B18101_001E,
+         Familyincome  = B19001_001E,
+         Housingunits  = B25001_001E,
+         Househeatingfuel  = B25040_001E)%>%
+  mutate(pctWhite = ifelse(TotalPop > 0, Whites / TotalPop,0),
+         pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop),0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
+         year = "2020") 
+
+```
+
+
+
+```{r police_density, echo=FALSE}
+## Plot density
+ggplot() + geom_sf(data = tracts20, fill = "grey40") +
+  stat_density2d(data = data.frame(st_coordinates(police.sf)), 
+                 aes(X, Y, fill = ..level.., alpha = ..level..),
+                 size = 0.01, bins = 40, geom = 'polygon') +
+  scale_fill_gradient(low = "#25CB10", high = "#FA7800", name = "Density") +
+  scale_alpha(range = c(0.00, 0.35), guide = "none") +
+  labs(title = "Density") +
+  mapTheme()
+```
+
+
+
+
+# 1. Introduction
+Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
+This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
+
+# 2. Data Manipulation and Visualization
+## 2.0 Setup
+In this section, we loaded necessary libraries, created plot theme options and map theme options, and identified functions of quintile breaks, and average nearest neighbor distance for further analysis.
+
+## 2.1 Data Wrangling
+In this section, we loaded Mecklenburg County data and other complementary datasets and conducted feature selection and engineering. Besides, for other analyses, we separate the whole dataset into and in advance of Mecklenburg. 
+
+Five categorical datasets were used in this project:
+**Mecklenburg County House Price and Internal Characteristics:** basic geometric dataset provided by the course in advance.
+
+**Mecklenburg County Base Data:** geometric data containing the geographic information of Mecklenburg County. 
+Mecklenburg County Beach Neighborhood: As an alternative way to using neighborhood data of Mecklenburg County Beach, we used Mecklenburg County Municipal Boundary data that is a polygon feature class of municipal boundaries within Mecklenburg County-Dade County, and specifically filter geometric data in Mecklenburg County Beach.
+
+**Census Data:** demographic variables from the ACS 2017 for census tracts in Mecklenburg County. We specifically selected 8 variables in the analysis:
+
+<p style="padding-left:2em;">
+**•	TotalPop:** Total population in each census tract
+**•	Whites:** White population in each census tract
+**•	MedHHInc:** Median household income in each census tract
+**•	MedRent:** Median Rent for properties in each census tract
+**•	TotalPoverty:** Population living under the level of poverty in each census tract
+**•	TotalUnit:** Total housing units in each census tract
+**•	pctWhite:** white population proportion in each census tract
+**• pctBachelors:** Bachelor population proportion in each census tract
+**•	pctPoverty:** Poverty population proportion in each census tract
+**•	pctTotalVacant: **Vacant unites proportion in each census tract
+•	</p>
+
+**Amenity Data:** most of the data come from the website of government: http://maps.co.mecklenburg.nc.us/openmapping/data.html.Compilatory data were chosen for describing amenities and public services of Mecklenburg County. The datasets we chose encompasses fireplace, police station, education opportunity, healthcare service, and entertainment accessibility. See each dataset below:
+
+<p style="padding-left:2em;">
+**1.	Public School:** Dataset contains points representing Elementary, Middle, and High Schools in Mecklenburg County.
+**2.	Bus station: ** A point feature class of CATS Bus Stops for Mecklenburg County.
+**3.	Fire station : ** Geographical representation of the physical locations of the Charlotte Fire Department Fire Stations.
+**4.	Church : ** Churches dataset defines locations classified as religious organizations in Mecklenburg County, data is queried from Master Address Table.
+**5.	Medical Facilities: ** This dataset was generated to publish a geospatial inventory of Medical Facilities in Mecklenburg County, NC. This data serves to support and assist the Charlotte Mecklenburg Planning Department, The City of Charlotte, and others in Urban Planning decisions. 
+**6.	Park : ** Park amenities for all parks in Mecklenburg County, including Charlotte, Davidson, Cornelius, Davidson, Huntersville, Matthews, Mint Hill, and Pineville. 
+**7.	Police: ** Charlotte-Mecklenburg Police Department Stations.
+</p>
+
+## 2.2 Summary Statistics
+Present a table of summary statistics with variable descriptions. 
+We sort these variables by their category (internal characteristics, amenities/public services or spatial structure).
+
+```{r summary, echo=TRUE}
+#internal
+factor_internal <- mklb.sf%>%
+  dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
+                fullbaths,halfbaths,bedrooms,units,prisqft) %>%
+  filter(prisqft!= 'Inf') 
+
+factor_internal.sf <- factor_internal
+
+factor_internal <-
+  select_if(st_drop_geometry(factor_internal), is.numeric)  %>% na.omit()
+#amentities
+factor_amenity <- mklb.sf%>%
+  dplyr::select(price,prisqft,police_nn1, police_nn2, police_nn3, school_nn1, school_nn2,  school_nn3, church_nn1, church_nn2, church_nn3, park_nn1, park_nn2, park_nn3,firestation_nn1, firestation_nn2, firestation_nn3, medical_nn1, medical_nn2, medical_nn3,police_nn1, police_nn2, police_nn3)
+
+factor_amenity <- factor_amenity%>%filter(prisqft!= 'Inf')
+  # dplyr::select(-commonpid,-age,-storyheigh,-heatedarea,-numfirepla,-totalac,
+  #                -fullbaths,-halfbaths,-bedrooms,-units)
+
+factor_amenity.sf <- factor_amenity
+factor_amenity <-
+  select_if(st_drop_geometry(factor_amenity), is.numeric)  %>% na.omit()
+#ACS
+ACS1 <- mklb.sf%>%
+  dplyr::select(price,prisqft)
+
+ACS2 <- tracts20%>%
+  dplyr::select(pctWhite, pctBachelors, pctPoverty, TotalPop, MedHHInc, Singleadult, Healthins, Familyincome, Housingunits, Househeatingfuel)
+
+factor_acs <-st_join(ACS1, ACS2) #%>%
+  #distinct(geometry, .keep_all = TRUE)
+
+all.sf <-st_join(mklb.sf, ACS2)
+
+factor_acs <-factor_acs%>%filter(prisqft!= 'Inf')
+factor_acs.sf <- factor_acs
+factor_acs <-
+  select_if(st_drop_geometry(factor_acs), is.numeric) %>% na.omit()
+
+
+star_internal <- st_drop_geometry(factor_internal)
+star_amenity <- st_drop_geometry(factor_amenity)
+star_acs <- st_drop_geometry(factor_acs)
+
+
+
+
+star_internal <- st_drop_geometry(factor_internal)
+star_amenity <- st_drop_geometry(factor_amenity)
+star_acs <- st_drop_geometry(factor_acs)
+
+stargazer(star_internal, type = "text", 
+          title = "Table DATA 2.1 Summary Statistics of Internal Characteristics ",
+          header = FALSE,
+          #out = "try.html",
+          single.row = TRUE)
+
+stargazer(star_amenity, type = "text",
+          title = "Table DATA 2.2 Summary Statistics of Amenities Characteristics ",
+          header = FALSE,
+          #out = "try.html",
+          single.row = TRUE)
+
+stargazer(star_acs, type = "text",
+          title = "Table DATA 2.3 Summary Statistics of ACS ",
+          header = FALSE,
+          #out = "try.html",
+          single.row = TRUE)
+```
+          
+```{r echo=TRUE}
+
+topredict <-
+  all.sf%>%
+  filter(toPredict!="CHALLENGE") %>%
+  filter(prisqft!= 'Inf')
+
+topredict_num <-
+  select_if(st_drop_geometry(topredict), is.numeric) %>% na.omit() 
+
+challenge <-
+  all.sf%>%
+  filter(toPredict=="CHALLENGE")
+
+challenge_num<-
+  select_if(st_drop_geometry(challenge), is.numeric) %>% na.omit()  
+```
+
+          
+Present a table of summary statistics with variable descriptions. 
+Sort these variables by their category (internal characteristics, amenities/public services or spatial structure). Check out the `stargazer` package for this.
+## 2.3 Correlation Matrix
+For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
+
+**Internal characteristics:**
+```{r correlation_matrix}
+# #internal features
+# ggcorrplot(
+#   round(cor(factor_internal), 1),
+#   p.mat = cor_pmat(factor_internal),
+#   colors = c('#05A167', "white", '#6897BB'),
+#   type="lower",
+#   insig = "blank") +
+#     labs(title = "Correlation across numeric variables\n(internal features)\n",
+#        caption = 'Figure DATA 2.2') +
+#     plotTheme()
+# 
+# #amenity features
+# factor_amenity <-factor_amenity%>%filter(prisqft != 'Inf')
+# ggcorrplot(
+#   round(cor(factor_amenity), 1),
+#   p.mat = cor_pmat(factor_amenity),
+#   colors = c('#05A167', "white", '#6897BB'),
+#   type="lower",
+#   insig = "blank") +
+#     labs(title = "Correlation across numeric variables\n(Amenity)\n",
+#        caption = 'Figure DATA 2.3') +
+#     plotTheme()
+# 
+# ggcorrplot(
+#   round(cor(factor_acs), 1),
+#   p.mat = cor_pmat(factor_acs),
+#   colors = c('#05A167', "white", '#6897BB'),
+#   type="lower",
+#   insig = "blank") +
+#     labs(title = "Correlation across numeric variables\n(ACS)\n",
+#        caption = 'Figure DATA 2.4')+
+#     plotTheme()
+
+factor_internal %>%
+  correlate() %>%
+  autoplot()+
+  geom_text(aes(label = round(r,digits=2)),size = 2)
+  
+```
+**Amenity :**There is also a strong connection between house price and public facilities. Generally speaking, if the public facilities are better, the house price will also increase.
+```{r}
+factor_acs %>%
+  correlate() %>%
+  autoplot() +
+  geom_text(aes(label = round(r,digits=2)),size = 2)
+```
+**ACS data :**Some of the variables in the ACS data are also closely related to house prices. For example, in this matrix price per square feet seems to be related with percentage of white.
+```{r}
+factor_acs %>%
+  correlate() %>%
+  autoplot() +
+  geom_text(aes(label = round(r,digits=2)),size = 2)
+```
+
+## 2.4 Home prices scatterplots
+We present 4 home price correlation scatterplots that we think are of interest, age, bedrooms, living area and single adult. We found a positive correlation between the number of rooms, livingarea and room rates, which is also consistent with common sense.
+Age and single adults are negatively correlated with house prices, but the coefficients are not large. Age may be due to the fact that buildings built earlier tend to be in low quality.
+```{r Correlation}
+
+## Home Features cor
+st_drop_geometry(all.sf) %>% 
+  mutate(LivingArea = heatedarea) %>%
+  dplyr::select(price, LivingArea, age,bedrooms, Singleadult) %>%
+  filter(price <= 1000000, age < 500) %>%
+  gather(Variable, Value, -price) %>% 
+   ggplot(aes(Value, price)) +
+     geom_point(size = .5) + geom_smooth(method = "lm", se=F, colour = "#FA7800") +
+     facet_wrap(~Variable, ncol = 4, scales = "free") +
+     labs(title = "Price as a function of continuous variables") +
+     plotTheme()
+```
+## 2.5 Map Home Prices
+```{r}
+maphomeprice <-topredict%>%filter(prisqft!= 'Inf')
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = maphomeprice, aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .75) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(maphomeprice,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price Per Square Foot, Mecklenburg County") +
+  mapTheme()
+```
+
+Develop 1 map of your dependent variable (sale price)
+```{r sale price map}
+# # Mapping data
+# ggplot() +
+#   geom_sf(data = st_union(tracts20), fill = "grey50") +
+#    geom_sf(data = topredict%>%filter(prisqft!= 'Inf'), aes(fill = (prisqft)), 
+#           show.legend = "point", size = .25) +
+#    
+#     # scale_colour_manual(values = palette5,
+#     #                labels=qBr(topredict,"PricePerSq"),
+#     #                name="Quintile\nBreaks") +
+#   scale_fill_viridis_c() +
+#   labs(title="try") +
+#   mapTheme()
+```
+## 2.6 Three interesting maps
+By plotting the matrix, we choose some variables with high positive or negative correlation.
+**Percentage of white:**\n
+The first independent variables we choose is the percentage of white.As the matrix shows, percentage of white and house prices are more positively correlated.We found that both the southern and northern parts of Mecklenburg County have a higher percentage of whites, basically greater than 75%, and this all corresponds to the higher prices in the previous house price map. In contrast, the places with lower house prices have a lower percentage of whites, even below 25%.\n
+```{r }
+# plot map of white
+
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = factor_acs.sf%>%filter(pctWhite<1), aes(colour = pctWhite),
+          show.legend = "point", size = .75) +
+  #scale_colour_manual(values = palette5,
+                   #labels=qBr(maphomeprice,"prisqft"),
+                  #name="Quintile\nBreaks") +
+  labs(title="Percentage of white, Mecklenburg County") +
+  mapTheme()
+```
+**Number of fullbaths in houses:**\n
+The second variable is Housing the number of full baths.We chose this variable because they have a strong correlation in the matrix, which is also in line with the general common sense inference. We can see that there are indeed more toilets in the south where the prices are higher as well.
+
+```{r}
+# plot map of age
+factor_internal.sf<-factor_internal.sf%>%filter(age != 2022)
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = factor_internal.sf, aes(colour = fullbaths),
+          show.legend = "point", size = .75) +
+  #scale_colour_manual(values = palette5,
+                   #labels=qBr(maphomeprice,"prisqft"),
+                   #name="Quintile\nBreaks") +
+  labs(title="Number of fullbaths in houses in Mecklenburg County") +
+  mapTheme()
+```
+**the average distance to nearest park:**\n
+The third independent variables is the average distance to nearest park. To our surprise, most of the amenities have negative correlation with the house price, so we choose park as an example. Perhaps the fact that the parks are mostly located at the edge of the city where traffic is difficult has affected the surrounding property prices.
+```{r}
+# plot map of park
+
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = factor_amenity.sf, aes(colour = park_nn1),
+          show.legend = "point", size = .75) +
+  #scale_colour_manual(values = palette5,
+                   #labels=qBr(maphomeprice,"prisqft"),
+                   #name="Quintile\nBreaks") +
+  labs(title="Distribution of average distance to\nnearest park in Mecklenburg County") +
+  mapTheme()
+```
+## 2.7 Bonus for something extra engaging
+**hospital**: We believe that health care resources are also an important factor in housing prices. Although the correlation is not high in the matrix, it is possible that it is influenced by hospital quality. We still find that areas with higher house prices in the south are closer to hospitals.\n
+```{r }
+hospital_nn1_expanded <- topredict %>%
+  mutate(hospital_nn1.expanded = medical_nn1 * 1000)
+
+ggplot() + 
+  geom_sf(data = st_union(tracts20),fill = '#E5E5E5') +
+  geom_sf(data = st_centroid(hospital_nn1_expanded),aes(color = hospital_nn1.expanded),size = .5) +
+  # scale_color_manual(values = palette,
+  #                    labels = qBr(hospital_nn1_expanded,'hospital_nn1.expanded'),
+  #                    name = "Average Distrance\nto Nearest Hospital\n(timed by 1000 \nfor better visualization)\n") +
+  labs(title = 'Distribution of Average Distrance to Nearest Hospital\nof Each Home Sale Observation\n') +
+  mapTheme() + 
+  plotTheme()
+```
+
+# 3 Methods
+Method:
+The mean objective of this analysis is to train a robust model to predict house price as accurately as possible. Accordingly, this section started to provide a detailed interpretation on the process of the model building and training.
+
+Here are three models used in this part.
+`model1`: the primitive model, where all the facotrs are in. 
+`model2 `: the model after training, with the facotrs selected.
+`model3`: the model to figure out the 'challenge'
+
+
+data，model, feature, result(map).   why you interprete it
+<p style="text-indent:32px;">
+**•	Data and Sample:** In order to accurately build and test models, we randomly split the whole into two parts: with 60% of observations for model training and with 40% of observations for model testing. 
+**•	Dependent Variable:** The dependent variable is home sale price: *Price*
+**•	Independent Variables:** Based on the hedonic home price model, potential features should encompass at least three components: internal characteristics, like the number of bathrooms; neighborhood amenities/public services, like hospital accessibility; and the underlying spatial process of prices.Plus, we also take the ACS data into consideration. 
+
+After creating features and engineering and checking correlation coefficients(in `model1`), *38* features are eligible for the model and obviously or slightly correlated with that were the initial independent variables for model building.  In further modifications of the model, we mainly considered p-values in determining the correlation of variables and removed the values with larger p-values:*totalac, park_nn1, park_nn2, firestation_nn1, medical_nn1, TotalPop*. We gradually screened out variables and eventually selected only *32* robust features included in the final model `model2`.
+
+
+**•	Procedure:** The primitive approach used in this analysis for model building is Ordinary Least Squares Regression (OLS) which is aimed at predicting the of houses as a function of several statistical parameters such as intercept, slope and selected features. 
+
+In order to determine which features were able to significantly increase the accuracy and generalizability of the model, we systematically compared, plotted, and mapping the mean absolute errors (MAE), mean absolute percent errors (MAPE), as well as root mean square errors (RMSE, the standard deviation of the residuals) between original and predicted of both training set and test set, conducted the cross-validation on 100 folds, explored the underlying spatial pattern of price and errors caused by problematic prediction. To address the problem of neglecting the underlying spatial correlation caused by neighborhood, we then compared, plotted, and mapped the mean absolute errors (MAE), and mean absolute percent errors (MAPE) on the test set between baseline model without neighborhood features and updated model with neighborhood features, and then determined our final model based on series model examinations.
+
+In this process include: 
+</p>
+
+
+```{r model1}
+
+set.seed(42)
+
+inTrain <- caret::createDataPartition(
+  y = paste(topredict$name,topredict$price),
+  p = .60, list = FALSE)
+
+# split data into training and test
+model.training <- topredict[inTrain,]
+model.test <- topredict[-inTrain,] 
+
+## First model: All internal features, amenity features
+model1 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
+           dplyr::select(colnames(factor_internal), 
+                         colnames(factor_amenity),
+                         colnames(factor_acs)
+))
+
+stargazer(model1, type = "html", 
+          title = "Table 4.1.1 Summary Statistics of Model 1 ",
+          out = "model1.html",
+          header = FALSE,
+          single.row = TRUE)
+
+```
+
+```{r model2}
+model2 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
+           dplyr::select(# internal features
+                         price, age, storyheigh,heatedarea, #prisqft,
+                         numfirepla, fullbaths,halfbaths,bedrooms,
+                         units,
+                         # amenity features
+                         police_nn1,police_nn2,police_nn3,school_nn1,
+                         school_nn2,school_nn3,church_nn1,church_nn2,
+                         church_nn3,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn1,
+                         #acs
+                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
+                         Singleadult,Healthins,Familyincome
+                         )
+          
+)
+model.test <-
+  model.test %>%
+  mutate(SalePrice.Predict = predict(model2, model.test),
+         SalePrice.Error = SalePrice.Predict - price,
+         SalePrice.AbsError = abs(SalePrice.Predict - price),
+         SalePrice.APE = (abs(SalePrice.Predict - price)) / SalePrice.Predict)%>%
+  filter(price < 5000000)
+
+
+```
+## Table of results (training set)
+```{r resultsmodel}
+stargazer(model2, type = "html", 
+          title = "Table 4.1.2 Summary Statistics of Model 2 ",
+          header = FALSE,
+          out = "model2.html",
+          single.row = TRUE)
+
+```
+## Table of goodness of fit (test set)
+```{r fit}
+test_fit<-as.data.frame(cbind(mean(model.test$SalePrice.AbsError,na.rm = T),
+                              mean(model.test$SalePrice.APE,na.rm = T)))
+colnames(test_fit)<-c("Mean Absolute Errors (MAE)","MAPE")
+kable(test_fit,
+      caption = 'Table RESULT. MAE and MAPE for Test Set') %>%
+  kable_styling("striped", full_width = F)
+
+```
+
+
+## CV Results
+```{r cv_results}
+fitControl <- trainControl(method = "cv", number = 100)
+set.seed(42)
+
+reg.cv <- 
+  train(price ~ ., data = st_drop_geometry(topredict) %>% 
+          dplyr::select(price, age, storyheigh,heatedarea, prisqft,
+                         numfirepla, fullbaths,halfbaths,bedrooms,
+                         units,
+                         # amenity features
+                         police_nn1,police_nn2,police_nn3,school_nn1,
+                         school_nn2,school_nn3,church_nn1,church_nn2,
+                         church_nn3,park_nn1,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn2,medical_nn3,
+                         #acs
+                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
+                         Singleadult,Healthins,Familyincome),
+        method = "lm", trControl = fitControl, na.action = na.pass)
+
+kable(reg.cv$resample,
+          caption = 'Table RESULT. Cross-validation Test: Summary of RMSE, R Squared and MAE') %>%
+  kable_styling("striped", full_width = F)
+
+
+```
+
+
+```{r distribution_cv_MAE}
+ggplot(data = reg.cv$resample) +
+  geom_histogram(aes(x = reg.cv$resample$MAE), fill = 'blue') +
+  labs(title="Distribution of Cross-validation MAE",
+       subtitle = "K = 100\n",
+       caption = "Figure RESULT") +
+  xlab('Mean Absolute Error') +
+  ylab('Count') +
+  plotTheme()
+
+```
+
+## Pred vs Obs Scatterplot
+```{r pred_vs_obs}
+reg.cv$resample %>% 
+  pivot_longer(-Resample) %>% 
+  mutate(name = as.factor(name)) %>% 
+  ggplot(., aes(x = name, y = value, color = name)) +
+  geom_jitter(width = 0.1) +
+  facet_wrap(~name, ncol = 3, scales = "free") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(title = 'Cross-validation Test: Distribution of MAE, RMSE, R Squared\n',
+       caption = "Figure RESULT") +
+  plotTheme()
+```
+```{r delete, eval=FALSE, include=FALSE}
+
+## Overall Plotting 这段没啥用现在我随便放的
+ggplot(, aes(x = actual, y = pred, color = source)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "darkblue") +
+  geom_abline(color = "orange") +
+  coord_equal() +
+  theme_bw() +
+  labs(title = "Predicted Prices as a\nFunction of Observed Prices",
+       subtitle = 'Blue line is model regression line\nwhile orange line is reference line\n',
+       caption = 'Figure RESULT 5.1',
+       x = "Observed Prices",
+       y = "Predicted Prices") +
+  theme(
+    legend.position = "none"
+  ) +
+  plotTheme()
+```
+## Residuals Map w/ Moran's I
+```{r moranTest}
+coords <- st_coordinates(all.sf) 
+
+neighborList <- knn2nb(knearneigh(coords, 5))
+
+spatialWeights <- nb2listw(neighborList, style="W")
+
+all.sf$lagPrice <- lag.listw(spatialWeights, all.sf$price)
+
+coords.test <-  st_coordinates(model.test) 
+
+neighborList.test <- knn2nb(knearneigh(coords.test, 5))
+
+spatialWeights.test <- nb2listw(neighborList.test, style="W")
+
+model.test %>%
+  mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error,NAOK =TRUE))
+
+#morantest
+
+moranTest <- moran.mc(model.test$SalePrice.Error, zero.policy=TRUE, #zero.policy make code runs, but the neighbor is empty
+                      spatialWeights.test, nsim = 999,na.action=na.omit)
+
+ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
+  geom_histogram(binwidth = 0.01) +
+  geom_vline(aes(xintercept = moranTest$statistic), colour = "#FA7800",size=1) +
+  scale_x_continuous(limits = c(-1, 1)) +
+  labs(title="Observed and permuted Moran's I",
+       subtitle= "Observed Moran's I in orange",
+       x="Moran's I",
+       y="Count") +
+  plotTheme()
+```
+
+## Predicted Map (Test Set)
+```{r}
+model3 <- lm(price ~ ., data = as.data.frame(topredict) %>% 
+           dplyr::select(# internal features
+                         price,age, storyheigh,heatedarea,#prisqft,
+                         numfirepla, fullbaths,halfbaths,bedrooms,
+                         units,
+                         # amenity features
+                         police_nn1,police_nn2,police_nn3,school_nn1,
+                         school_nn2,school_nn3,church_nn1,church_nn2,
+                         church_nn3,park_nn1,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn2,medical_nn3,
+                         #acs
+                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
+                         Singleadult,Healthins,Familyincome
+                         ))
+          
+```
+
+
+```{r}
+# challenge<- challenge %>%
+#   dplyr::select(-price,-prisqft)
+
+challenge<-
+  challenge %>%
+  mutate(SalePrice.Predict = predict(model2,challenge))
+
+challenge<- challenge %>%
+  mutate(price=SalePrice.Predict,
+         prisqft = price/heatedarea)
+  
+
+testprice <-challenge #%>%filter(prisqft!= 'Inf')
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = testprice, aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .75) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(testprice,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price Per Sqaure Foot, Mecklenburg County") +
+  mapTheme()
+```
+## MAPE map by neighborhood
+
+```{r}
+nhood_sum <- topredict %>% 
+  group_by(name) %>%
+  summarize(meanPrice = mean(price, na.rm = T),
+            meanPrediction = mean(price.Predict, na.rm = T),
+            meanMAE = mean(price.AbsError, na.rm = T),
+            meanMAPE = mean(price.APE, na.rm = T)) 
+
+nhood_sum %>%
+  st_drop_geometry %>%
+  arrange(desc(meanMAPE)) %>% 
+  kable(caption = 'Table RESULT 8. Map of MAPE by Neighborhood') %>% 
+  kable_styling("striped", full_width = F)
+```
+
+```{r}
+nhood_sum <- topredict %>% 
+  group_by(name) %>%
+  summarize(meanPrice = mean(SalePrice, na.rm = T),
+            meanPrediction = mean(SalePrice.Predict, na.rm = T),
+            meanMAE = mean(SalePrice.AbsError, na.rm = T),
+            meanMAPE = mean(SalePrice.APE, na.rm = T)) 
+
+nhood_sum %>%
+  st_drop_geometry %>%
+  arrange(desc(meanMAPE)) %>% 
+  kable(caption = 'Table RESULT 8. Map of MAPE by Neighborhood') %>% 
+  kable_styling("striped", full_width = F)
+```
+## Scatterplot - MAPE by neighborhood mean price
+```{r}
+MAPE.nhood.plot <-ggplot()+
+  geom_point(data = nhood_sum, aes(x = meanPrice, y = meanMAPE)) +
+  stat_smooth(data = nhood_sum, aes(x = meanPrice, y = meanMAPE), method = "loess", se = FALSE, size = 1, colour="red") + 
+  labs(title = "MAPE by Neighborhood as a Function of\nMean Price by Neighborhood\n",
+       caption = 'Figure RESULT 9') +
+  xlab('Mean Price by Neighborhood') +
+  ylab('Mean MAPE by Neighborhood') +
+  plotTheme()
+
+MAPE.nhood.plot
+```
+## Split by Census Groups
+
+# Discussion
+Is this an effective model? What were some of the more interesting variables?  How much of the variation in prices could you predict? Describe the more important features? Describe the error in your predictions?  According to your maps, could you account the spatial variation in prices?  Where did the model predict particularly well? Poorly? Why do you think this might be?
+## Accuracy
+
+## Generalizability
+
+# Conclusion
+Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
+
+
+
+```{r atesttest}
+plot_summs(model2, scale = TRUE)
+```
+
