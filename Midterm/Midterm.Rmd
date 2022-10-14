@@ -121,7 +121,7 @@ cmpd_busstation<-
 
 #neighborhood
 neighborhood <-
-  st_read('http://maps.co.mecklenburg.nc.us/geoserver/postgis/ows?service=WFS&version=1.0.0&request=GetFeature&outputFormat=application%2Fjson&srsName=EPSG:4326&typeName=postgis:historicdistricts_py')%>%
+  st_read('https://raw.githubusercontent.com/RumRon/HW_UP_IP/main/Midterm/geojson/VFD_FireDistricts.geojson')%>%
   st_transform('EPSG:2264')
 
 ```
