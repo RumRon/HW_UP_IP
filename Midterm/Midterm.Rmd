@@ -121,7 +121,7 @@ cmpd_busstation<-
 
 #neighborhood
 neighborhood <-
-  st_read('https://raw.githubusercontent.com/RumRon/HW_UP_IP/main/Midterm/geojson/Subdivisions.geojson')%>%
+  st_read('http://maps.co.mecklenburg.nc.us/geoserver/postgis/ows?service=WFS&version=1.0.0&request=GetFeature&outputFormat=application%2Fjson&srsName=EPSG:4326&typeName=postgis:historicdistricts_py')%>%
   st_transform('EPSG:2264')
 
 ```
@@ -759,6 +759,9 @@ reg.cv$resample %>%
        caption = "Figure RESULT") +
   plotTheme()
 ```
+
+
+
 ```{r delete, eval=FALSE, include=FALSE}
 
 ## Overall Plotting 这段没啥用现在我随便放的
@@ -814,49 +817,10 @@ ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
 ```
 
 ## Predicted Map (Test Set)
-```{r}
-model3 <- lm(price ~ ., data = as.data.frame(topredict) %>% 
-           dplyr::select(# internal features
-                         price,age, storyheigh,heatedarea,#prisqft,
-                         numfirepla, fullbaths,halfbaths,bedrooms,
-                         units,
-                         # amenity features
-                         police_nn1,police_nn2,police_nn3,school_nn1,
-                         school_nn2,school_nn3,church_nn1,church_nn2,
-                         church_nn3,park_nn1,park_nn3,firestation_nn2,
-                         firestation_nn3,medical_nn2,medical_nn3,
-                         #acs
-                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
-                         Singleadult,Healthins,Familyincome
-                         ))
-          
-```
 
 
-```{r}
-# challenge<- challenge %>%
-#   dplyr::select(-price,-prisqft)
 
-challenge<-
-  challenge %>%
-  mutate(SalePrice.Predict = predict(model2,challenge))
 
-challenge<- challenge %>%
-  mutate(price=SalePrice.Predict,
-         prisqft = price/heatedarea)
-  
-
-testprice <-challenge #%>%filter(prisqft!= 'Inf')
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey50") +
-  geom_sf(data = testprice, aes(colour = q5(prisqft)), 
-          show.legend = "point", size = .75) +
-  scale_colour_manual(values = palette5,
-                   labels=qBr(testprice,"prisqft"),
-                   name="Quintile\nBreaks") +
-  labs(title="Price Per Sqaure Foot, Mecklenburg County") +
-  mapTheme()
-```
 ## MAPE map by neighborhood
 
 ```{r}
@@ -912,7 +876,50 @@ Is this an effective model? What were some of the more interesting variables?  H
 # Conclusion
 Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
 
+#
+```{r comp_model, eval=FALSE, include=FALSE}
+model3 <- lm(price ~ ., data = as.data.frame(topredict) %>% 
+           dplyr::select(# internal features
+                         price,age, storyheigh,heatedarea,#prisqft,
+                         numfirepla, fullbaths,halfbaths,bedrooms,
+                         units,
+                         # amenity features
+                         police_nn1,police_nn2,police_nn3,school_nn1,
+                         school_nn2,school_nn3,church_nn1,church_nn2,
+                         church_nn3,park_nn1,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn2,medical_nn3,
+                         #acs
+                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
+                         Singleadult,Healthins,Familyincome
+                         ))
+          
+```
 
+
+```{r}
+# challenge<- challenge %>%
+#   dplyr::select(-price,-prisqft)
+
+challenge<-
+  challenge %>%
+  mutate(SalePrice.Predict = predict(model3,challenge))
+
+challenge<- challenge %>%
+  mutate(price=SalePrice.Predict,
+         prisqft = price/heatedarea)
+  
+
+testprice <-challenge #%>%filter(prisqft!= 'Inf')
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = testprice, aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .75) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(testprice,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price Per Sqaure Foot, Mecklenburg County") +
+  mapTheme()
+```
 
 ```{r atesttest}
 plot_summs(model2, scale = TRUE)
