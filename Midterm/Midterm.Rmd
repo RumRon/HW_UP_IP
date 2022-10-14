@@ -337,20 +337,6 @@ tracts20 <-
 ```
 
 
-
-```{r police_density,    message = FALSE, warning = FALSE}
-## Plot density
-ggplot() + geom_sf(data = tracts20, fill = "grey40") +
-  stat_density2d(data = data.frame(st_coordinates(police.sf)), 
-                 aes(X, Y, fill = ..level.., alpha = ..level..),
-                 size = 0.01, bins = 40, geom = 'polygon') +
-  scale_fill_gradient(low = "#25CB10", high = "#FA7800", name = "Density") +
-  scale_alpha(range = c(0.00, 0.35), guide = "none") +
-  labs(title = "Density") +
-  mapTheme()
-```
-
-
 ## 2.2 Summary Statistics
 Present a table of summary statistics with variable descriptions. 
 We sort these variables by their category (internal characteristics, amenities/public services or spatial structure).
@@ -451,6 +437,7 @@ Sort these variables by their category (internal characteristics, amenities/publ
 For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
 
 **Internal characteristics:**
+
 ```{r correlation_matrix,   message = FALSE, warning = FALSE}
 # #internal features
 # ggcorrplot(
@@ -493,6 +480,7 @@ factor_internal %>%
 ```
 
 **Amenity :**There is also a strong connection between house price and public facilities. Generally speaking, if the public facilities are better, the house price will also increase.
+
 ```{r factor_amenity ,   message = FALSE, warning = FALSE}
 factor_amenity %>%
   correlate() %>%
@@ -501,6 +489,7 @@ factor_amenity %>%
 ```
 
 **ACS data :**Some of the variables in the ACS data are also closely related to house prices. For example, in this matrix price per square feet seems to be related with percentage of white.
+
 ```{r factor_acs,   message = FALSE, warning = FALSE}
 factor_acs %>%
   correlate() %>%
@@ -511,6 +500,7 @@ factor_acs %>%
 ## 2.4 Home prices scatterplots
 We present 4 home price correlation scatterplots that we think are of interest, age, bedrooms, living area and single adult. We found a positive correlation between the number of rooms, livingarea and room rates, which is also consistent with common sense.
 Age and single adults are negatively correlated with house prices, but the coefficients are not large. Age may be due to the fact that buildings built earlier tend to be in low quality.
+
 ```{r Correlation,   message = FALSE, warning = FALSE}
 
 ## Home Features cor
@@ -527,6 +517,8 @@ st_drop_geometry(all.sf) %>%
 ```
 
 ## 2.5 Map Home Prices
+Looking at the current situation, we can see that home prices are higher in the south and north of Mecklenburg County and lower in the middle.
+
 ```{r homeprice,    message = FALSE, warning = FALSE}
 maphomeprice <-topredict%>%filter(prisqft!= 'Inf')
 ggplot() +
@@ -540,25 +532,11 @@ ggplot() +
   mapTheme()
 ```
 
-Develop 1 map of your dependent variable (sale price)
-```{r sale price map ,   message = FALSE, warning = FALSE}
-# Mapping data
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey50") +
-   geom_sf(data = topredict%>%filter(prisqft!= 'Inf'), aes(fill = (prisqft)),
-          show.legend = "point", size = .25) +
-
-    # scale_colour_manual(values = palette5,
-    #                labels=qBr(topredict,"PricePerSq"),
-    #                name="Quintile\nBreaks") +
-  scale_fill_viridis_c() +
-  labs(title="try") +
-  mapTheme()
-```
 ## 2.6 Three interesting maps
 By plotting the matrix, we choose some variables with high positive or negative correlation.
-**Percentage of white:**\n
-The first independent variables we choose is the percentage of white.As the matrix shows, percentage of white and house prices are more positively correlated.We found that both the southern and northern parts of Mecklenburg County have a higher percentage of whites, basically greater than 75%, and this all corresponds to the higher prices in the previous house price map. In contrast, the places with lower house prices have a lower percentage of whites, even below 25%.\n
+**Percentage of white:**    
+The first independent variables we choose is the percentage of white.As the matrix shows, percentage of white and house prices are more positively correlated.We found that both the southern and northern parts of Mecklenburg County have a higher percentage of whites, basically greater than 75%, and this all corresponds to the higher prices in the previous house price map. In contrast, the places with lower house prices have a lower percentage of whites, even below 25%.
+
 ```{r map_pctwhite,   message = FALSE, warning = FALSE}
 # plot map of white
 
@@ -573,7 +551,7 @@ ggplot() +
   mapTheme()
 ```
 
-**Number of fullbaths in houses:**\n
+**Number of fullbaths in houses:**    
 The second variable is Housing the number of full baths.We chose this variable because they have a strong correlation in the matrix, which is also in line with the general common sense inference. We can see that there are indeed more toilets in the south where the prices are higher as well.
 
 ```{r map_age,   message = FALSE, warning = FALSE}
@@ -590,8 +568,9 @@ ggplot() +
   mapTheme()
 ```
 
-**the average distance to nearest park:**\n
+**the average distance to nearest park:**  
 The third independent variables is the average distance to nearest park. To our surprise, most of the amenities have negative correlation with the house price, so we choose park as an example. Perhaps the fact that the parks are mostly located at the edge of the city where traffic is difficult has affected the surrounding property prices.
+
 ```{r map_park,   message = FALSE, warning = FALSE}
 # plot map of park
 
@@ -607,7 +586,8 @@ ggplot() +
 ```
 
 ## 2.7 Bonus for something extra engaging
-**hospital**: We believe that health care resources are also an important factor in housing prices. Although the correlation is not high in the matrix, it is possible that it is influenced by hospital quality. We still find that areas with higher house prices in the south are closer to hospitals.\n
+**hospital**: We believe that health care resources are also an important factor in housing prices. Although the correlation is not high in the matrix, it is possible that it is influenced by hospital quality. We still find that areas with higher house prices in the south are closer to hospitals.
+
 ```{r hospital,    message = FALSE, warning = FALSE}
 hospital_nn1_expanded <- topredict %>%
   mutate(hospital_nn1.expanded = medical_nn1 * 1000)
@@ -660,6 +640,7 @@ Secondly,we built three models with different features to examine which features
 
 
 The baseline model contained 10 internal characteristic features: *age, storyheigh, heatedare, numfirepla, totalac, fullbaths, halfbaths, bedrooms, units, prisqft* and ,as well as 18 amenity features. Plus, there are also some ACS features.
+
 ```{r model1,    message = FALSE, warning = FALSE}
 
 set.seed(42)
@@ -712,7 +693,8 @@ challenge<- challenge %>%
 ```
 
 ## 4.2 Table of results (training set)
-In this part, we study the Summary Statistics of Model 1 to select variables to build our final model. We mainly considered p-values in determining the correlation of variables and removed the values with larger p-values. The R^2^ is 0.615. 
+In this part, we study the Summary Statistics of Model 1 to select variables to build our final model. We mainly considered p-values in determining the correlation of variables and removed the values with larger p-values. The R^2^ is 0.87, which is an is an okay fit.
+
 ```{r model2,   message = FALSE, warning = FALSE}
 model2 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
            dplyr::select(# internal features
@@ -772,6 +754,7 @@ This section conducted cross-validation to assess how our model would generalize
 Both a summary table and distribution plots of R-square, RMSE, and MAE in each of 100 fold are shown below.The cross-validation output provides very important goodness of fit information. The value of each metric is actually the mean value across all folds. The train function returns many objects (names(reg.cv)), one of which is resample which provides goodness of fit for each of the 100 folds. 
 
 The variation of 100 folds can also be visualized with a histogram of across-fold MAE. Although most of the errors are clustering tightly together, some errors are scattered, indicating the inconsistency of the model prediction.
+
 ```{r cv_results,   message = FALSE, warning = FALSE}
 fitControl <- trainControl(method = "cv", number = 100)
 set.seed(42)
@@ -832,7 +815,7 @@ reg.cv$resample %>%
 lIn this section, we focus on verifying whether the spatial distribution will have an impact on our model. We mainly use the following approaches:
 <p style="padding-left:2em;">
 **residual maps:** It shows the residuals in different places in Mecklenberg County, and we can also observed the distribution of residuals.
-/#缺失#
+
 ```{r map_res_test,   message = FALSE, warning = FALSE}
 map.res.test <- ggplot() + 
   geom_sf(data = st_union(tracts20),fill = 'grey') +
@@ -849,7 +832,7 @@ map.res.test
 
 
 **spatial lag in errors：** A spatial lag is a variable that averages the neighboring values of a location. 
-#可能的结论，但是缺失了The spatial lag of error plot shows that as home price errors increase, the nearby home price errors slightly decrease, indicating that our model errors are rarely spatially autocorrelated.
+The spatial lag of error plot shows that as home price errors increase, the nearby home price errors slightly increase, indicating that our model errors are rarely spatially autocorrelated.
 </p>
 
 ```{r spatial_lag,  , message = FALSE, warning = FALSE}
@@ -883,8 +866,6 @@ ggplot(model.test, aes(x = lagPriceError, y = price)) +
 
 **MoranTest:**An approach for measuring spatial autocorrelation. In the picture, the frequency of all 999 randomly permutated I are plotted as a histogram with the Observed I indicated by the orange line. That the observed I is higher then all of the 999 randomly generated, so it provides visual confirmation of spatial autocorrelation. 
 
-
-
 ```{r moranTest,   message = FALSE, warning = FALSE}
 moranTest <- moran.mc(model.test$SalePrice.Error, zero.policy=TRUE, #zero.policy make code runs, but the neighbor is empty
                       spatialWeights.test, nsim = 999,na.action=na.omit)
@@ -903,6 +884,8 @@ ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
 
 
 ## 4.6 Plot predicted prices as a function of observed prices
+From the comparison of the two graphs, we can find the change before and after adding the neighborhood effect data. Although this change is not very obvious in this graph, it is still an improvement as far as the overall picture is concerned. Perhaps it is because the local neighborhoods are not very homogeneous.
+
 ```{r delete,    message = FALSE, warning = FALSE, results = 'asis'}
 reg.nhood <- lm(price ~ ., data = as.data.frame(model.training) %>% 
                                  dplyr::select(price,age, storyheigh,heatedarea,#prisqft,
@@ -962,6 +945,7 @@ bothRegressions %>%
 ```
 
 ## 4.7 map of predicted values for CHALLENGE and entire data set
+We filled in the data for the challenge with the modified model.
 
 ```{r    message = FALSE, warning = FALSE}
 # challenge<- challenge %>%
@@ -1005,8 +989,7 @@ ggplot() +
 
 
 ## 4.8 Map of MAPE by neighborhood
-Indicated in the summary table as well as the choropleth map below, MAPE varies across neighborhoods (only 22 neighborhoods left in the test set). 
-缺结论
+Indicated in the summary table as well as the choropleth map below, MAPE varies across neighborhoods. However, we can find that the neighborhood effect help us to improve the model, especially for the places in north Mecklenburg County.
 
 ```{r     message = FALSE, warning = FALSE, results = 'asis'}
 left_join(
@@ -1046,6 +1029,7 @@ st_drop_geometry(bothRegressions) %>%
 
 
 ## 4.9 Predicted Map (Test Set)
+In this map, we can see that the house price of south Mecklenburg County is relatively high, and most of them are more than $237/squarefeet.
 ```{r    message = FALSE, warning = FALSE}
 ggplot() +
   geom_sf(data = st_union(tracts20), fill = "grey50") +
@@ -1057,9 +1041,6 @@ ggplot() +
   labs(title="Price predicted per sqft (Test Set)",subtitle="Mecklenburg County") +
   mapTheme()
 ```
-
-
-
 
 ## 4.10 Scatterplot - MAPE by neighborhood mean price
 ```{r    message = FALSE, warning = FALSE}
@@ -1085,7 +1066,15 @@ MAPE.nhood.plot
 
 
 ## 4.11 Split by Census Groups
-In this part, we chose two variables:*race*, *income* and plot them by census tract.The first map shows that Mecklenburg County is racially divided, with predominantly white neighborhoods to the north and south, which are also where housing prices are higher. The lower income groups are scattered in the more central parts of Mecklenburg County.
+In this part, we chose two variables:*race*, *income* and plot them by census tract.
+
+We consider a local white population of more than 50% to be Majority white, and a MedHHInc of more than $32,322 to be High Income. The first map shows that Mecklenburg County is racially divided, with predominantly white neighborhoods to the north and south, which are also where housing prices are higher. 
+
+Next, we calculated the Mean absolute percentage error by merging the ACS data with the model2 data. After adding the `Neighborhood Effects` model,from the perspective of ethnicity we can see that there is a significant difference in goodness of fit across the races, the MAPE of the majority non-white baseline is 32%, but that is just 23% for the majority white. This may be determined by the characteristics of the local neighborhood, such as the wide variation in neighborhood housing conditions and lack of consistency; or it may be that ethnic factors play a greater role here.
+
+From the perspective of income, we can find something different. After adding the `Neighborhood Effects` model, the The MAPE of neighborhood effects in high-income is higher than that in high-income places, which may indicate the neighborhood's adjustability for high-income areas.
+
+
 
 ```{r    message = FALSE, warning = FALSE}
 tracts20 <- tracts20 %>%
@@ -1128,21 +1117,23 @@ st_join(bothRegressions, tracts20) %>%
 
 
 # V Discussion
-Is this an effective model? What were some of the more interesting variables?  How much of the variation in prices could you predict? Describe the more important features? Describe the error in your predictions?  According to your maps, could you account the spatial variation in prices?  Where did the model predict particularly well? Poorly? Why do you think this might be?
+In general, the data of neighborhood ‘fixed effects’ increased the accuracy and generalizability of the model, but model errors remained clustered. We will then discuss these two aspects separately. 
+
+We think the from the coefficient in `model2`, we can find some important feature, such as the number of fullbaths, percentage of white and living area. We think the errors in my model mainly rely on the amenities. From the matrix, I find that the data we found about the facilities are not strongly correlated with house prices. The results fitted with poorly correlated data will lack some accuracy.
 
 
 ## 5.1 Accuracy
+From the accuracy point of view, the R^2^ value of our model is high, about 0.87 in Model2, which can be considered as a good indicator. With the inclusion of neighborhood effects, there is a slight improvement in accuracy, especially in the neighborhoods on the east side of Mecklenburg County. It is worth noting that despite the adjustment for neighborhood, the APE for house prices is still 33%, which seems a bit too high for data scientists and suggests that the model still needs a lot of refinement before it can be used in the real world.
+But the model also has strengths. The model shows relatively low APE and error values when measuring white concentrations in the south and north, meaning that the accuracy of the model may vary for different parcels of land. And the model has smaller error values in places with high concentrations of whites and higher house prices.
 
 
 ## 5.2 Generalizability
+As for generalizability，neighborhood controls created a more generalizable model, presumably because it successfully ‘borrowed’ a diverse set of housing market ‘experiences’ across different communities. However, despite the use of neighborhoods for adjustment, there are still some things that are not right, such as what we mentioned above, for low-income areas，the mape of them with neighborhood effect is even larger than that of them in basic regression。 The MAPE of low-income places in basic regression is 43%, but it increase to 51% when we add the data of neighborhood. Therefore, I believe that the model has some adaptability when adjusted for the neighborhood effect, but it will be different for different kinds of neighborhoods. The model is more applicable in areas with high income and high housing prices.
 
 
-# VI Conclusion
-Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
-
-
-
-
+## VI Conclusion
+If all the model examination and interpretation have been conducted correctly as shown above, we would like to **recommend** this model to Zillow as it incorporates some Mecklenburg County’s local intelligent features that were absent in the previous models and performed comparatively well on either accuracy or generalizability.
+We can continue add some elements to improve the model. To further reduce the error rate, more amenity features such as local restaurants, commercials and bars (data unavailable so far), financial related agencies, public transportation and spatial features such as zoning should be taken into consideration. What’s more, given the previous research done on ethnicity, I think we should do more research in areas with concentrations of people of color to observe the pattern of housing prices to adjust our models.
 
 
 
