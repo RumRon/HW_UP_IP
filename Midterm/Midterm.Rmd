@@ -845,9 +845,9 @@ model.test <- model.test %>%
 
 bothRegressions <- 
   rbind(
-    dplyr::select(model.test, starts_with("SalePrice"), Regression, vfd) %>%
+    dplyr::select(model.test, starts_with("SalePrice"), Regression, vfd, price) %>%
       mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error,NAOK =TRUE)),
-    dplyr::select(model.test.nhood, starts_with("SalePrice"), Regression, vfd) %>%
+    dplyr::select(model.test.nhood, starts_with("SalePrice"), Regression, vfd, price) %>%
       mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error,NAOK =TRUE)))   
 
 st_drop_geometry(bothRegressions) %>%
@@ -860,44 +860,60 @@ st_drop_geometry(bothRegressions) %>%
 
 ```
 
-## Predicted Map (Test Set)
-
-
-
-
-## MAPE map by neighborhood
-
 ```{r}
-nhood_sum <- topredict %>% 
-  group_by(name) %>%
-  summarize(meanPrice = mean(price, na.rm = T),
-            meanPrediction = mean(price.Predict, na.rm = T),
-            meanMAE = mean(price.AbsError, na.rm = T),
-            meanMAPE = mean(price.APE, na.rm = T)) 
-
-nhood_sum %>%
-  st_drop_geometry %>%
-  arrange(desc(meanMAPE)) %>% 
-  kable(caption = 'Table RESULT 8. Map of MAPE by Neighborhood') %>% 
-  kable_styling("striped", full_width = F)
+bothRegressions %>%
+  dplyr::select(SalePrice.Predict, price, Regression) %>%
+    ggplot(aes(price, SalePrice.Predict)) +
+  geom_point() +
+  stat_smooth(aes(price, price), 
+             method = "lm", se = FALSE, size = 1, colour="#FA7800") + 
+  stat_smooth(aes(SalePrice.Predict, price), 
+              method = "lm", se = FALSE, size = 1, colour="#25CB10") +
+  facet_wrap(~Regression) +
+  labs(title="Predicted sale price as a function of observed price",
+       subtitle="Orange line represents a perfect prediction; Green line represents prediction") +
+  plotTheme()
 ```
 
+## Predicted Map (Test Set)
 ```{r}
-nhood_sum <- topredict %>% 
-  group_by(name) %>%
-  summarize(meanPrice = mean(SalePrice, na.rm = T),
-            meanPrediction = mean(SalePrice.Predict, na.rm = T),
-            meanMAE = mean(SalePrice.AbsError, na.rm = T),
-            meanMAPE = mean(SalePrice.APE, na.rm = T)) 
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = model.test, aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .6) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(model.test,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price predicted per sqft, Mecklenburg County") +
+  mapTheme()
+```
+## MAPE map by neighborhood
 
-nhood_sum %>%
-  st_drop_geometry %>%
-  arrange(desc(meanMAPE)) %>% 
-  kable(caption = 'Table RESULT 8. Map of MAPE by Neighborhood') %>% 
-  kable_styling("striped", full_width = F)
+
+```{r}
+st_drop_geometry(bothRegressions) %>%
+  group_by(Regression, vfd) %>%
+  summarize(mean.MAPE = mean(SalePrice.APE, na.rm = T)) %>%
+  ungroup() %>% 
+  left_join(nhood.sf) %>%
+    st_sf() %>%
+    ggplot() + 
+      geom_sf(aes(fill = mean.MAPE)) +
+      geom_sf(data = bothRegressions, colour = "black", size = .05) +
+      facet_wrap(~Regression) +
+      scale_fill_gradient(low = palette5[1], high = palette5[5],
+                          name = "MAPE") +
+      labs(title = "Mean test set MAPE by neighborhood") +
+      mapTheme()
 ```
 ## Scatterplot - MAPE by neighborhood mean price
 ```{r}
+nhood_sum <- model.test %>% 
+  group_by(vfd) %>%
+  summarize(meanPrice = mean(price, na.rm = T),
+            meanPrediction = mean(SalePrice.Predict, na.rm = T),
+            meanMAE = mean(SalePrice.AbsError, na.rm = T),
+            meanMAPE = mean(SalePrice.APE, na.rm = T)) 
 MAPE.nhood.plot <-ggplot()+
   geom_point(data = nhood_sum, aes(x = meanPrice, y = meanMAPE)) +
   stat_smooth(data = nhood_sum, aes(x = meanPrice, y = meanMAPE), method = "loess", se = FALSE, size = 1, colour="red") + 
@@ -907,8 +923,52 @@ MAPE.nhood.plot <-ggplot()+
   ylab('Mean MAPE by Neighborhood') +
   plotTheme()
 
+
+
 MAPE.nhood.plot
 ```
+
+
+#census
+```{r}
+tracts20 <- tracts20 %>%
+  mutate(percentWhite = Whites / TotalPop,
+         raceContext = ifelse(percentWhite > .5, "Majority White", "Majority Non-White"),
+         incomeContext = ifelse(MedHHInc > 32322, "High Income", "Low Income"))
+
+grid.arrange(ncol = 2,
+  ggplot() + geom_sf(data = na.omit(tracts20), aes(fill = raceContext)) +
+    scale_fill_manual(values = c("#25CB10", "#FA7800"), name="Race Context") +
+    labs(title = "Race Context") +
+    mapTheme() + theme(legend.position="bottom"), 
+  ggplot() + geom_sf(data = na.omit(tracts20), aes(fill = incomeContext)) +
+    scale_fill_manual(values = c("#25CB10", "#FA7800"), name="Income Context") +
+    labs(title = "Income Context") +
+    mapTheme() + theme(legend.position="bottom"))
+
+```
+
+
+```{r}
+st_join(bothRegressions, tracts20) %>% 
+  group_by(Regression, raceContext) %>%
+  summarize(mean.MAPE = scales::percent(mean(SalePrice.APE, na.rm = T))) %>%
+  st_drop_geometry() %>%
+  spread(raceContext, mean.MAPE) %>%
+  kable(caption = "Test set MAPE by neighborhood racial context")
+```
+
+```{r}
+st_join(bothRegressions, tracts20) %>% 
+  filter(!is.na(incomeContext)) %>%
+  group_by(Regression, incomeContext) %>%
+  summarize(mean.MAPE = scales::percent(mean(SalePrice.APE, na.rm = T))) %>%
+  st_drop_geometry() %>%
+  spread(incomeContext, mean.MAPE) %>%
+  kable(caption = "Test set MAPE by neighborhood income context")
+```
+
+
 ## Split by Census Groups
 
 # Discussion
