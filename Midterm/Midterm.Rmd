@@ -456,6 +456,7 @@ Present a table of summary statistics with variable descriptions.
 Sort these variables by their category (internal characteristics, amenities/public services or spatial structure). Check out the `stargazer` package for this.
 ## 2.3 Correlation Matrix
 For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
+
 **Internal characteristics:**
 ```{r correlation_matrix}
 # #internal features
@@ -496,22 +497,25 @@ factor_internal %>%
   autoplot()+
   geom_text(aes(label = round(r,digits=2)),size = 2)
   
-
-
+```
+**Amenity :**There is also a strong connection between house price and public facilities. Generally speaking, if the public facilities are better, the house price will also increase.
+```{r}
 factor_acs %>%
   correlate() %>%
   autoplot() +
   geom_text(aes(label = round(r,digits=2)),size = 2)
-
-factor_amenity %>%
+```
+**ACS data :**Some of the variables in the ACS data are also closely related to house prices. For example, in this matrix price per square feet seems to be related with percentage of white.
+```{r}
+factor_acs %>%
   correlate() %>%
   autoplot() +
   geom_text(aes(label = round(r,digits=2)),size = 2)
-
 ```
 
-## Home prices scatterplots
-Present 4 home price correlation scatterplots that you think are of interest. I’m going to look for interesting open data that you’ve integrated with the home sale observations.
+## 2.4 Home prices scatterplots
+We present 4 home price correlation scatterplots that we think are of interest, age, bedrooms, living area and single adult. We found a positive correlation between the number of rooms, livingarea and room rates, which is also consistent with common sense.
+Age and single adults are negatively correlated with house prices, but the coefficients are not large. Age may be due to the fact that buildings built earlier tend to be in low quality.
 ```{r Correlation}
 
 ## Home Features cor
@@ -526,7 +530,7 @@ st_drop_geometry(all.sf) %>%
      labs(title = "Price as a function of continuous variables") +
      plotTheme()
 ```
-## Map Home Prices
+## 2.5 Map Home Prices
 ```{r}
 maphomeprice <-topredict%>%filter(prisqft!= 'Inf')
 ggplot() +
@@ -555,36 +559,41 @@ Develop 1 map of your dependent variable (sale price)
 #   labs(title="try") +
 #   mapTheme()
 ```
-## 3 interesting maps
-Develop 3 maps of 3 of your most interesting independent variables.
-```{r eval=FALSE, include=FALSE}
-# plot map of poverty
+## 2.6 Three interesting maps
+By plotting the matrix, we choose some variables with high positive or negative correlation.
+**Percentage of white:**\n
+The first independent variables we choose is the percentage of white.As the matrix shows, percentage of white and house prices are more positively correlated.We found that both the southern and northern parts of Mecklenburg County have a higher percentage of whites, basically greater than 75%, and this all corresponds to the higher prices in the previous house price map. In contrast, the places with lower house prices have a lower percentage of whites, even below 25%.\n
+```{r }
+# plot map of white
 
 ggplot() +
   geom_sf(data = st_union(tracts20), fill = "grey50") +
-  geom_sf(data = factor_acs.sf, aes(colour = pctPoverty),
+  geom_sf(data = factor_acs.sf%>%filter(pctWhite<1), aes(colour = pctWhite),
           show.legend = "point", size = .75) +
-  scale_colour_manual(values = palette5,
-                      labels=qBr(maphomeprice,"prisqft"),
-                      name="Quintile\nBreaks") +
-  labs(title="Percentage of poverty, Mecklenburg County") +
+  #scale_colour_manual(values = palette5,
+                   #labels=qBr(maphomeprice,"prisqft"),
+                  #name="Quintile\nBreaks") +
+  labs(title="Percentage of white, Mecklenburg County") +
   mapTheme()
 ```
+**Number of fullbaths in houses:**\n
+The second variable is Housing the number of full baths.We chose this variable because they have a strong correlation in the matrix, which is also in line with the general common sense inference. We can see that there are indeed more toilets in the south where the prices are higher as well.
 
 ```{r}
 # plot map of age
 factor_internal.sf<-factor_internal.sf%>%filter(age != 2022)
 ggplot() +
   geom_sf(data = st_union(tracts20), fill = "grey50") +
-  geom_sf(data = factor_internal.sf, aes(colour = age),
+  geom_sf(data = factor_internal.sf, aes(colour = fullbaths),
           show.legend = "point", size = .75) +
   #scale_colour_manual(values = palette5,
                    #labels=qBr(maphomeprice,"prisqft"),
                    #name="Quintile\nBreaks") +
-  labs(title="Housing age in Mecklenburg County") +
+  labs(title="Number of fullbaths in houses in Mecklenburg County") +
   mapTheme()
 ```
-
+**the average distance to nearest park:**\n
+The third independent variables is the average distance to nearest park. To our surprise, most of the amenities have negative correlation with the house price, so we choose park as an example. Perhaps the fact that the parks are mostly located at the edge of the city where traffic is difficult has affected the surrounding property prices.
 ```{r}
 # plot map of park
 
@@ -598,12 +607,8 @@ ggplot() +
   labs(title="Distribution of average distance to\nnearest park in Mecklenburg County") +
   mapTheme()
 ```
-## This criterion is linked to a Learning OutcomeBonus for something extra engaging
-Include any other maps/graphs/charts you think might be of interest.
-
-# Methods
-
-
+## 2.7 Bonus for something extra engaging
+**hospital**: We believe that health care resources are also an important factor in housing prices. Although the correlation is not high in the matrix, it is possible that it is influenced by hospital quality. We still find that areas with higher house prices in the south are closer to hospitals.\n
 ```{r }
 hospital_nn1_expanded <- topredict %>%
   mutate(hospital_nn1.expanded = medical_nn1 * 1000)
@@ -614,11 +619,14 @@ ggplot() +
   # scale_color_manual(values = palette,
   #                    labels = qBr(hospital_nn1_expanded,'hospital_nn1.expanded'),
   #                    name = "Average Distrance\nto Nearest Hospital\n(timed by 1000 \nfor better visualization)\n") +
-  labs(title = 'Distribution of Average Distrance to Nearest Hospital\nof Each Home Sale Observation\n',
-       caption = 'Figure DATA 6.3') +
+  labs(title = 'Distribution of Average Distrance to Nearest Hospital\nof Each Home Sale Observation\n') +
   mapTheme() + 
   plotTheme()
 ```
+
+# 3 Methods
+
+
 
 
 
@@ -850,9 +858,25 @@ ggplot() +
   mapTheme()
 ```
 ## MAPE map by neighborhood
+
 ```{r}
 nhood_sum <- topredict %>% 
-  group_by(LABEL) %>%
+  group_by(name) %>%
+  summarize(meanPrice = mean(price, na.rm = T),
+            meanPrediction = mean(price.Predict, na.rm = T),
+            meanMAE = mean(price.AbsError, na.rm = T),
+            meanMAPE = mean(price.APE, na.rm = T)) 
+
+nhood_sum %>%
+  st_drop_geometry %>%
+  arrange(desc(meanMAPE)) %>% 
+  kable(caption = 'Table RESULT 8. Map of MAPE by Neighborhood') %>% 
+  kable_styling("striped", full_width = F)
+```
+
+```{r}
+nhood_sum <- topredict %>% 
+  group_by(name) %>%
   summarize(meanPrice = mean(SalePrice, na.rm = T),
             meanPrediction = mean(SalePrice.Predict, na.rm = T),
             meanMAE = mean(SalePrice.AbsError, na.rm = T),
