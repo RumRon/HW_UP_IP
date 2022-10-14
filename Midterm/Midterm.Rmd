@@ -796,6 +796,7 @@ ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
        x="Moran's I",
        y="Count") +
   plotTheme()
+
 ```
 Plot predicted prices as a function of observed prices
 
@@ -841,6 +842,21 @@ model.test.nhood <-
 
 model.test <- model.test %>%
   mutate(Regression = "Baseline Regression")
+
+bothRegressions <- 
+  rbind(
+    dplyr::select(model.test, starts_with("SalePrice"), Regression, vfd) %>%
+      mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error,NAOK =TRUE)),
+    dplyr::select(model.test.nhood, starts_with("SalePrice"), Regression, vfd) %>%
+      mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error,NAOK =TRUE)))   
+
+st_drop_geometry(bothRegressions) %>%
+  gather(Variable, Value, -Regression, -vfd) %>%
+  filter(Variable == "SalePrice.AbsError" | Variable == "SalePrice.APE") %>%
+  group_by(Regression, Variable) %>%
+    summarize(meanValue = mean(Value, na.rm = T)) %>%
+    spread(Variable, meanValue) %>%
+    kable()
 
 ```
 
