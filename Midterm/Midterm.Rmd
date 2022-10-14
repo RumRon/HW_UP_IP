@@ -9,8 +9,7 @@ output:
     code_folding: hide
 ---
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE)
-knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 # I. Introduction
 Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
@@ -19,14 +18,8 @@ This model aims to build an accurate and generalizable hedonic model that predic
 # II. Data Manipulation and Visualization
 ## 2.0 Setup
 In this section, we loaded necessary libraries, created plot theme options and map theme options, and identified functions of quintile breaks, and average nearest neighbor distance for further analysis.
-```{r setup}
-#set some global options for knitting chunks
+```{r lib, message=FALSE}
 
-#knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(
-	warning = FALSE,
-	message = FALSE
-)
 # Load some libraries
 
 library(tidyverse)
@@ -96,7 +89,7 @@ Total population in each census tract
 **6.	Park : ** Park amenities for all parks in Mecklenburg County, including Charlotte, Davidson, Cornelius, Davidson, Huntersville, Matthews, Mint Hill, and Pineville.   
 **7.	Police: ** Charlotte-Mecklenburg Police Department Stations.  
 </p>
-```{r read_data, echo=TRUE}
+```{r read_data, echo=TRUE,  message = FALSE}
 primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
   st_transform('EPSG:2264')
@@ -104,7 +97,7 @@ primary.data<-
 
 
 
-```{r split_data, include=FALSE}
+```{r split_data, include=FALSE,message = FALSE, warning = FALSE}
 primary.data<-
   primary.data%>%
   filter(price<10000000)
@@ -129,7 +122,7 @@ numericVars <-
 
 
 
-```{r read amentity data}
+```{r read amentity data,message = FALSE, warning = FALSE}
 
 #school data
 cmpd_school<-
@@ -173,7 +166,7 @@ neighborhood <-
 
 
 
-```{r turn to sf}
+```{r turn to sf,message = FALSE, warning = FALSE}
 
 police.sf <-
   cmpd_police %>%
@@ -254,7 +247,7 @@ nhood.sf<-
 
 
 
-```{r to_k}
+```{r to_k,message = FALSE, warning = FALSE}
 mklb.sf <- 
   mklb.sf %>% 
      mutate(
@@ -301,7 +294,7 @@ mklb.sf <-st_join(mklb.sf, nhood.sf)
 ```
 
 
-```{r read tracts}
+```{r read tracts,message = FALSE, warning = FALSE}
 # acs
 acs_variable_list.20 <- load_variables(2020, #year
                                          "acs5", #five year ACS estimates
@@ -345,7 +338,7 @@ tracts20 <-
 
 
 
-```{r police_density, echo=FALSE}
+```{r police_density, echo=FALSE,message = FALSE, warning = FALSE}
 ## Plot density
 ggplot() + geom_sf(data = tracts20, fill = "grey40") +
   stat_density2d(data = data.frame(st_coordinates(police.sf)), 
@@ -362,7 +355,7 @@ ggplot() + geom_sf(data = tracts20, fill = "grey40") +
 Present a table of summary statistics with variable descriptions. 
 We sort these variables by their category (internal characteristics, amenities/public services or spatial structure).
 
-```{r summary, echo=TRUE}
+```{r summary, echo=TRUE,message = FALSE, warning = FALSE}
 #internal
 factor_internal <- mklb.sf%>%
   dplyr::select(commonpid,price,age,storyheigh,heatedarea,numfirepla,totalac,
@@ -432,7 +425,7 @@ stargazer(star_acs, type = "html",
           single.row = TRUE)
 ```
           
-```{r echo=TRUE}
+```{r echo=TRUE,message = FALSE, warning = FALSE}
 
 topredict <-
   all.sf%>%
@@ -458,7 +451,7 @@ Sort these variables by their category (internal characteristics, amenities/publ
 For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
 
 **Internal characteristics:**
-```{r correlation_matrix}
+```{r correlation_matrix,message = FALSE, warning = FALSE}
 # #internal features
 # ggcorrplot(
 #   round(cor(factor_internal), 1),
@@ -499,14 +492,14 @@ factor_internal %>%
   
 ```
 **Amenity :**There is also a strong connection between house price and public facilities. Generally speaking, if the public facilities are better, the house price will also increase.
-```{r}
-factor_acs %>%
+```{r factor_amenity ,message = FALSE, warning = FALSE}
+factor_amenity %>%
   correlate() %>%
   autoplot() +
   geom_text(aes(label = round(r,digits=2)),size = 2)
 ```
 **ACS data :**Some of the variables in the ACS data are also closely related to house prices. For example, in this matrix price per square feet seems to be related with percentage of white.
-```{r}
+```{r factor_acs,message = FALSE, warning = FALSE}
 factor_acs %>%
   correlate() %>%
   autoplot() +
@@ -516,7 +509,7 @@ factor_acs %>%
 ## 2.4 Home prices scatterplots
 We present 4 home price correlation scatterplots that we think are of interest, age, bedrooms, living area and single adult. We found a positive correlation between the number of rooms, livingarea and room rates, which is also consistent with common sense.
 Age and single adults are negatively correlated with house prices, but the coefficients are not large. Age may be due to the fact that buildings built earlier tend to be in low quality.
-```{r Correlation}
+```{r Correlation,message = FALSE, warning = FALSE}
 
 ## Home Features cor
 st_drop_geometry(all.sf) %>% 
@@ -532,7 +525,7 @@ st_drop_geometry(all.sf) %>%
 ```
 
 ## 2.5 Map Home Prices
-```{r}
+```{r homeprice, message = FALSE, warning = FALSE}
 maphomeprice <-topredict%>%filter(prisqft!= 'Inf')
 ggplot() +
   geom_sf(data = st_union(tracts20), fill = "grey50") +
@@ -546,25 +539,25 @@ ggplot() +
 ```
 
 Develop 1 map of your dependent variable (sale price)
-```{r sale price map}
-# # Mapping data
-# ggplot() +
-#   geom_sf(data = st_union(tracts20), fill = "grey50") +
-#    geom_sf(data = topredict%>%filter(prisqft!= 'Inf'), aes(fill = (prisqft)), 
-#           show.legend = "point", size = .25) +
-#    
-#     # scale_colour_manual(values = palette5,
-#     #                labels=qBr(topredict,"PricePerSq"),
-#     #                name="Quintile\nBreaks") +
-#   scale_fill_viridis_c() +
-#   labs(title="try") +
-#   mapTheme()
+```{r sale price map ,message = FALSE, warning = FALSE}
+# Mapping data
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+   geom_sf(data = topredict%>%filter(prisqft!= 'Inf'), aes(fill = (prisqft)),
+          show.legend = "point", size = .25) +
+
+    # scale_colour_manual(values = palette5,
+    #                labels=qBr(topredict,"PricePerSq"),
+    #                name="Quintile\nBreaks") +
+  scale_fill_viridis_c() +
+  labs(title="try") +
+  mapTheme()
 ```
 ## 2.6 Three interesting maps
 By plotting the matrix, we choose some variables with high positive or negative correlation.
 **Percentage of white:**\n
 The first independent variables we choose is the percentage of white.As the matrix shows, percentage of white and house prices are more positively correlated.We found that both the southern and northern parts of Mecklenburg County have a higher percentage of whites, basically greater than 75%, and this all corresponds to the higher prices in the previous house price map. In contrast, the places with lower house prices have a lower percentage of whites, even below 25%.\n
-```{r }
+```{r map_pctwhite,message = FALSE, warning = FALSE}
 # plot map of white
 
 ggplot() +
@@ -580,7 +573,7 @@ ggplot() +
 **Number of fullbaths in houses:**\n
 The second variable is Housing the number of full baths.We chose this variable because they have a strong correlation in the matrix, which is also in line with the general common sense inference. We can see that there are indeed more toilets in the south where the prices are higher as well.
 
-```{r}
+```{r map_age,message = FALSE, warning = FALSE}
 # plot map of age
 factor_internal.sf<-factor_internal.sf%>%filter(age != 2022)
 ggplot() +
@@ -595,7 +588,7 @@ ggplot() +
 ```
 **the average distance to nearest park:**\n
 The third independent variables is the average distance to nearest park. To our surprise, most of the amenities have negative correlation with the house price, so we choose park as an example. Perhaps the fact that the parks are mostly located at the edge of the city where traffic is difficult has affected the surrounding property prices.
-```{r}
+```{r map_park,message = FALSE, warning = FALSE}
 # plot map of park
 
 ggplot() +
@@ -610,7 +603,7 @@ ggplot() +
 ```
 ## 2.7 Bonus for something extra engaging
 **hospital**: We believe that health care resources are also an important factor in housing prices. Although the correlation is not high in the matrix, it is possible that it is influenced by hospital quality. We still find that areas with higher house prices in the south are closer to hospitals.\n
-```{r }
+```{r hospital, message = FALSE, warning = FALSE}
 hospital_nn1_expanded <- topredict %>%
   mutate(hospital_nn1.expanded = medical_nn1 * 1000)
 
@@ -662,7 +655,7 @@ Secondly,we built three models with different features to examine which features
 
 
 The baseline model contained 10 internal characteristic features: *age, storyheigh, heatedare, numfirepla, totalac, fullbaths, halfbaths, bedrooms, units, prisqft* and ,as well as 18 amenity features. Plus, there are also some ACS features.
-```{r model1}
+```{r model1 ,message = FALSE, warning = FALSE}
 
 set.seed(42)
 
@@ -689,9 +682,33 @@ stargazer(model1, type = "html",
 
 ```
 
+```{r include=FALSE}
+model3 <- lm(price ~ ., data = as.data.frame(topredict) %>% 
+           dplyr::select(# internal features
+                         price,age, storyheigh,heatedarea,#prisqft,
+                         numfirepla, fullbaths,halfbaths,bedrooms,
+                         units,
+                         # amenity features
+                         police_nn1,police_nn2,police_nn3,school_nn1,
+                         school_nn2,school_nn3,church_nn1,church_nn2,
+                         church_nn3,park_nn1,park_nn3,firestation_nn2,
+                         firestation_nn3,medical_nn2,medical_nn3,
+                         #acs
+                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
+                         Singleadult,Healthins,Familyincome
+                         ))
+challenge<-
+  challenge %>%
+  mutate(SalePrice.Predict = predict(model3,challenge))
+
+challenge<- challenge %>%
+  mutate(price=SalePrice.Predict,
+         prisqft = price/heatedarea)
+```
+
 ## 4.2 Table of results (training set)
 In this part, we study the Summary Statistics of Model 1 to select variables to build our final model. We mainly considered p-values in determining the correlation of variables and removed the values with larger p-values. The R^2^ is 0.615. 
-```{r model2}
+```{r model2,message = FALSE, warning = FALSE}
 model2 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
            dplyr::select(# internal features
                          price, age, storyheigh,heatedarea, #prisqft,
@@ -719,7 +736,7 @@ model.test <-
 
 ```
 
-```{r resultsmodel}
+```{r resultsmodel,message = FALSE, warning = FALSE}
 stargazer(model2, type = "html", 
           title = "Table 4.1.2 Summary Statistics of Model 2 ",
           header = FALSE,
@@ -731,7 +748,7 @@ stargazer(model2, type = "html",
 ## 4.3 Table of goodness of fit (test set)
 The Mean Absolute Errors (MAE) and Mean Absolute Percent Errors (MAPE) are statistical measures of how accurate a forecast system is.Based on the following table, the MAE is 125091.8, the errors are accounted for 0.4281398.
 
-```{r fit}
+```{r fit,message = FALSE, warning = FALSE}
 test_fit<-as.data.frame(cbind(mean(model.test$SalePrice.AbsError,na.rm = T),
                               mean(model.test$SalePrice.APE,na.rm = T)))
 colnames(test_fit)<-c("Mean Absolute Errors (MAE)","MAPE")
@@ -750,7 +767,7 @@ This section conducted cross-validation to assess how our model would generalize
 Both a summary table and distribution plots of R-square, RMSE, and MAE in each of 100 fold are shown below.The cross-validation output provides very important goodness of fit information. The value of each metric is actually the mean value across all folds. The train function returns many objects (names(reg.cv)), one of which is resample which provides goodness of fit for each of the 100 folds. 
 
 The variation of 100 folds can also be visualized with a histogram of across-fold MAE. Although most of the errors are clustering tightly together, some errors are scattered, indicating the inconsistency of the model prediction.
-```{r cv_results}
+```{r cv_results,message = FALSE, warning = FALSE}
 fitControl <- trainControl(method = "cv", number = 100)
 set.seed(42)
 
@@ -770,7 +787,7 @@ reg.cv <-
         method = "lm", trControl = fitControl, na.action = na.pass)
 ```
 
-```{r results}
+```{r results,message = FALSE, warning = FALSE}
 kable(reg.cv$resample,
           caption = 'Table RESULT. Cross-validation Test: Summary of RMSE, R Squared and MAE') %>%
   kable_styling("striped", full_width = F)
@@ -779,7 +796,7 @@ kable(reg.cv$resample,
 ```
 
 
-```{r distribution_cv_MAE}
+```{r distribution_cv_MAE,message = FALSE, warning = FALSE}
 ggplot(data = reg.cv$resample) +
   geom_histogram(aes(x = reg.cv$resample$MAE), fill = 'blue') +
   labs(title="Distribution of Cross-validation MAE",
@@ -791,7 +808,7 @@ ggplot(data = reg.cv$resample) +
 
 ```
 
-```{r pred_vs_obs}
+```{r cv_test, message = FALSE, warning = FALSE}
 reg.cv$resample %>% 
   pivot_longer(-Resample) %>% 
   mutate(name = as.factor(name)) %>% 
@@ -805,22 +822,32 @@ reg.cv$resample %>%
   plotTheme()
 ```
 
-## 4.5 Pred vs Obs Scatterplot
-/#缺一张图！
 
-## 4.6 Map of residuals for our test:\n setResiduals Map w/ Moran's I/plot of the spatial lag in errors
+## 4.5 Map of residuals for our test:\n setResiduals Map w/ Moran's I/plot of the spatial lag in errors
 lIn this section, we focus on verifying whether the spatial distribution will have an impact on our model. We mainly use the following approaches:
 <p style="padding-left:2em;">
 **residual maps:** It shows the residuals in different places in Mecklenberg County, and we can also observed the distribution of residuals.
 /#缺失#
-**MoranTest:**An approach for measuring spatial autocorrelation. In the picture, the frequency of all 999 randomly permutated I are plotted as a histogram with the Observed I indicated by the orange line. That the observed I is higher then all of the 999 randomly generated, so it provides visual confirmation of spatial autocorrelation. 
+```{r map_res_test,message = FALSE, warning = FALSE}
+map.res.test <- ggplot() + 
+  geom_sf(data = st_union(tracts20),fill = 'grey') +
+  geom_sf(data = model.test %>%filter(SalePrice.AbsError!= 'NA') ,aes(color = q5(SalePrice.AbsError)), show.legend = "point",size = 1) +
+  scale_color_manual(values = palette5,
+                     labels = qBr(model.test,'SalePrice.AbsError'),
+                     name = "Residuals") +
+  labs(title = 'Map of residuals for test set\n',
+       caption = 'Figure 6.1') +
+  mapTheme() + 
+  plotTheme()
+map.res.test
+```
 
 
 **spatial lag in errors：** A spatial lag is a variable that averages the neighboring values of a location. 
 #可能的结论，但是缺失了The spatial lag of error plot shows that as home price errors increase, the nearby home price errors slightly decrease, indicating that our model errors are rarely spatially autocorrelated.
 </p>
 
-```{r moranTest}
+```{r spatial_lag, message=FALSE, warning=FALSE}
 coords <- st_coordinates(all.sf) 
 
 neighborList <- knn2nb(knearneigh(coords, 5))
@@ -835,11 +862,25 @@ neighborList.test <- knn2nb(knearneigh(coords.test, 5))
 
 spatialWeights.test <- nb2listw(neighborList.test, style="W")
 
-model.test %>%
+model.test <- model.test %>%
   mutate(lagPriceError = lag.listw(spatialWeights.test, SalePrice.Error,NAOK =TRUE))
 
+ggplot(model.test, aes(x = lagPriceError, y = price)) +
+  geom_point(colour = "#6897BB") +
+  geom_smooth(method = "lm", se = FALSE, colour = "#05A167") +
+  labs(title = "Error on Test Set as a function of the Spatial Lag of Price",
+       caption = "Figure RESULT 6.2",
+       x = "Spatial lag of errors (Mean error of 5 nearest neighbors)",
+       y = "Sale Price") +
+  plotTheme()
 #morantest
+```
 
+**MoranTest:**An approach for measuring spatial autocorrelation. In the picture, the frequency of all 999 randomly permutated I are plotted as a histogram with the Observed I indicated by the orange line. That the observed I is higher then all of the 999 randomly generated, so it provides visual confirmation of spatial autocorrelation. 
+
+
+
+```{r moranTest}
 moranTest <- moran.mc(model.test$SalePrice.Error, zero.policy=TRUE, #zero.policy make code runs, but the neighbor is empty
                       spatialWeights.test, nsim = 999,na.action=na.omit)
 
@@ -856,7 +897,7 @@ ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
 ```
 
 
-## 4.7 Plot predicted prices as a function of observed prices
+## 4.6 Plot predicted prices as a function of observed prices
 ```{r delete, echo=FALSE}
 reg.nhood <- lm(price ~ ., data = as.data.frame(model.training) %>% 
                                  dplyr::select(price,age, storyheigh,heatedarea,#prisqft,
@@ -914,9 +955,51 @@ bothRegressions %>%
        subtitle="Orange line represents a perfect prediction; Green line represents prediction") +
   plotTheme()
 ```
+## 4.7 map of predicted values for CHALLENGE and entire data set
+
+
+```{r echo=FALSE}
+# challenge<- challenge %>%
+#   dplyr::select(-price,-prisqft)
+
+testprice <-challenge #%>%filter(prisqft!= 'Inf')
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = testprice%>%filter(prisqft!= 'NA'), aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .75) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(testprice,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price Per Sqaure Foot , Mecklenburg County") +
+  mapTheme()
+```
+
+
+```{r echo=FALSE}
+modeling111 <- topredict %>%
+  dplyr::select(commonpid,prisqft)
+
+challenge111 <- challenge %>%
+  dplyr::select(commonpid,prisqft)
+
+allpricesqft <- rbind(modeling111,challenge111) %>%
+  filter(prisqft!= 'NA')
+
+
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = allpricesqft, aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .5) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(allpricesqft,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price Per Sqaure Foot (entire)",subtitle="Mecklenburg County") +
+  mapTheme()
+```
+
+
 
 ## 4.8 Map of MAPE by neighborhood
-/#表错了，应该加上MAPE
 Indicated in the summary table as well as the choropleth map below, MAPE varies across neighborhoods (only 22 neighborhoods left in the test set). 
 缺结论
 
@@ -924,7 +1007,10 @@ Indicated in the summary table as well as the choropleth map below, MAPE varies 
 left_join(
   st_drop_geometry(model.test) %>%
     group_by(vfd) %>%
-    summarize(meanPrice = mean(price, na.rm = T)),
+    summarize(meanPrice = mean(price, na.rm = T),
+              meanPrediction = mean(SalePrice.Predict, na.rm = T),
+            meanMAE = mean(SalePrice.AbsError, na.rm = T),
+            meanMAPE = mean(SalePrice.APE, na.rm = T)) ,
     mutate(model.test, predict.fe = 
                         predict(lm(price ~ vfd, data = model.test), 
                         model.test)) %>%
@@ -963,28 +1049,12 @@ ggplot() +
   scale_colour_manual(values = palette5,
                    labels=qBr(model.test,"prisqft"),
                    name="Quintile\nBreaks") +
-  labs(title="Price predicted per sqft, Mecklenburg County") +
+  labs(title="Price predicted per sqft (Test Set)",subtitle="Mecklenburg County") +
   mapTheme()
 ```
 
 
-做过了## MAPE map by neighborhood
-```{r, eval=FALSE, include=FALSE}
-st_drop_geometry(bothRegressions) %>%
-  group_by(Regression, vfd) %>%
-  summarize(mean.MAPE = mean(SalePrice.APE, na.rm = T)) %>%
-  ungroup() %>% 
-  left_join(nhood.sf) %>%
-    st_sf() %>%
-    ggplot() + 
-      geom_sf(aes(fill = mean.MAPE)) +
-      geom_sf(data = bothRegressions, colour = "black", size = .05) +
-      facet_wrap(~Regression) +
-      scale_fill_gradient(low = palette5[1], high = palette5[5],
-                          name = "MAPE") +
-      labs(title = "Mean test set MAPE by neighborhood") +
-      mapTheme()
-```
+
 
 ## 4.10 Scatterplot - MAPE by neighborhood mean price
 ```{r}
@@ -1055,57 +1125,22 @@ st_join(bothRegressions, tracts20) %>%
 # V Discussion
 Is this an effective model? What were some of the more interesting variables?  How much of the variation in prices could you predict? Describe the more important features? Describe the error in your predictions?  According to your maps, could you account the spatial variation in prices?  Where did the model predict particularly well? Poorly? Why do you think this might be?
 
+
 ## 5.1 Accuracy
 
+
 ## 5.2 Generalizability
+
 
 # VI Conclusion
 Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
 
+
 # VII Challenge
 
-```{r eval=FALSE, include=FALSE}
-model3 <- lm(price ~ ., data = as.data.frame(topredict) %>% 
-           dplyr::select(# internal features
-                         price,age, storyheigh,heatedarea,#prisqft,
-                         numfirepla, fullbaths,halfbaths,bedrooms,
-                         units,
-                         # amenity features
-                         police_nn1,police_nn2,police_nn3,school_nn1,
-                         school_nn2,school_nn3,church_nn1,church_nn2,
-                         church_nn3,park_nn1,park_nn3,firestation_nn2,
-                         firestation_nn3,medical_nn2,medical_nn3,
-                         #acs
-                         pctWhite,pctBachelors,pctPoverty,MedHHInc,
-                         Singleadult,Healthins,Familyincome
-                         ))
-          
-```
 
 
-```{r eval=FALSE, include=FALSE}
-# challenge<- challenge %>%
-#   dplyr::select(-price,-prisqft)
 
-challenge<-
-  challenge %>%
-  mutate(SalePrice.Predict = predict(model3,challenge))
 
-challenge<- challenge %>%
-  mutate(price=SalePrice.Predict,
-         prisqft = price/heatedarea)
-  
-
-testprice <-challenge #%>%filter(prisqft!= 'Inf')
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey50") +
-  geom_sf(data = testprice, aes(colour = q5(prisqft)), 
-          show.legend = "point", size = .75) +
-  scale_colour_manual(values = palette5,
-                   labels=qBr(testprice,"prisqft"),
-                   name="Quintile\nBreaks") +
-  labs(title="Price Per Sqaure Foot, Mecklenburg County") +
-  mapTheme()
-```
 
 
