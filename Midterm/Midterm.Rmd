@@ -753,7 +753,7 @@ stargazer(model2, type = "html",
 ## 4.3 Table of goodness of fit (test set)
 The Mean Absolute Errors (MAE) and Mean Absolute Percent Errors (MAPE) are statistical measures of how accurate a forecast system is.Based on the following table, the MAE is 125091.8, the errors are accounted for 0.4281398.
 
-```{r fit,   message = FALSE, warning = FALSE}
+```{r fit,   message = FALSE, warning = FALSE, results='asis'}
 test_fit<-as.data.frame(cbind(mean(model.test$SalePrice.AbsError,na.rm = T),
                               mean(model.test$SalePrice.APE,na.rm = T)))
 colnames(test_fit)<-c("Mean Absolute Errors (MAE)","MAPE")
@@ -792,7 +792,7 @@ reg.cv <-
         method = "lm", trControl = fitControl, na.action = na.pass)
 ```
 
-```{r results,   message = FALSE, warning = FALSE}
+```{r results,   message = FALSE, warning = FALSE, results = 'asis'}
 kable(reg.cv$resample,
           caption = 'Table RESULT. Cross-validation Test: Summary of RMSE, R Squared and MAE') %>%
   kable_styling("striped", full_width = F)
@@ -903,7 +903,7 @@ ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
 
 
 ## 4.6 Plot predicted prices as a function of observed prices
-```{r delete,    message = FALSE, warning = FALSE}
+```{r delete,    message = FALSE, warning = FALSE, results = 'asis'}
 reg.nhood <- lm(price ~ ., data = as.data.frame(model.training) %>% 
                                  dplyr::select(price,age, storyheigh,heatedarea,#prisqft,
                          numfirepla, fullbaths,halfbaths,bedrooms,
@@ -1008,7 +1008,7 @@ ggplot() +
 Indicated in the summary table as well as the choropleth map below, MAPE varies across neighborhoods (only 22 neighborhoods left in the test set). 
 缺结论
 
-```{r     message = FALSE, warning = FALSE}
+```{r     message = FALSE, warning = FALSE, results = 'asis'}
 left_join(
   st_drop_geometry(model.test) %>%
     group_by(vfd) %>%
@@ -1106,7 +1106,7 @@ grid.arrange(ncol = 2,
 ```
 
 
-```{r    message = FALSE, warning = FALSE}
+```{r    message = FALSE, warning = FALSE, results = 'asis'}
 st_join(bothRegressions, tracts20) %>% 
   group_by(Regression, raceContext) %>%
   summarize(mean.MAPE = scales::percent(mean(SalePrice.APE, na.rm = T))) %>%
@@ -1115,7 +1115,7 @@ st_join(bothRegressions, tracts20) %>%
   kable(caption = "Test set MAPE by neighborhood racial context")
 ```
 
-```{r  message = FALSE, warning = FALSE}
+```{r  message = FALSE, warning = FALSE, results = 'asis'}
 st_join(bothRegressions, tracts20) %>% 
   filter(!is.na(incomeContext)) %>%
   group_by(Regression, incomeContext) %>%
