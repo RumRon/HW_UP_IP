@@ -9,6 +9,13 @@ output:
     code_folding: hide
 ---
 
+# I. Introduction
+Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
+This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
+
+# II. Data Manipulation and Visualization
+## 2.0 Setup
+In this section, we loaded necessary libraries, created plot theme options and map theme options, and identified functions of quintile breaks, and average nearest neighbor distance for further analysis.
 ```{r setup}
 #set some global options for knitting chunks
 
@@ -50,7 +57,42 @@ palette5 <- c("#25CB10", "#5AB60C", "#8FA108",   "#C48C04", "#FA7800")
 
 ```
 
+## 2.1 Data Wrangling
+In this section, we loaded Mecklenburg County data and other complementary datasets and conducted feature selection and engineering. Besides, for other analyses, we separate the whole dataset into and in advance of Mecklenburg. 
 
+Five categorical datasets were used in this project:
+**Mecklenburg County House Price and Internal Characteristics:** basic geometric dataset provided by the course in advance.
+
+**Mecklenburg County Base Data:** geometric data containing the geographic information of Mecklenburg County. 
+Mecklenburg County Beach Neighborhood: As an alternative way to using neighborhood data of Mecklenburg County Beach, we used Mecklenburg County Municipal Boundary data that is a polygon feature class of municipal boundaries within Mecklenburg County-Dade County, and specifically filter geometric data in Mecklenburg County Beach.
+
+**Census Data:** demographic variables from the ACS 2017 for census tracts in Mecklenburg County. We specifically selected 8 variables in the analysis:
+
+<p style="padding-left:2em;">
+**•	TotalPop:** 
+Total population in each census tract  
+**•	Whites:** White population in each census tract  
+**•	MedHHInc:** Median household income in each census tract  
+**•	MedRent:** Median Rent for properties in each census tract  
+**•	TotalPoverty:** Population living under the level of poverty in each census tract  
+**•	TotalUnit:** Total housing units in each census tract  
+**•	pctWhite:** white population proportion in each census tract  
+**• pctBachelors:** Bachelor population proportion in each census tract  
+**•	pctPoverty:** Poverty population proportion in each census tract  
+**•	pctTotalVacant: **Vacant unites proportion in each census tract  
+</p>
+
+**Amenity Data:** most of the data come from the website of government: http://maps.co.mecklenburg.nc.us/openmapping/data.html.Compilatory data were chosen for describing amenities and public services of Mecklenburg County. The datasets we chose encompasses fireplace, police station, education opportunity, healthcare service, and entertainment accessibility. See each dataset below:
+
+<p style="padding-left:2em;">
+**1.	Public School:** Dataset contains points representing Elementary, Middle, and High Schools in Mecklenburg County.  
+**2.	Bus station: ** A point feature class of CATS Bus Stops for Mecklenburg County.  
+**3.	Fire station : ** Geographical representation of the physical locations of the Charlotte Fire Department Fire Stations.  
+**4.	Church : ** Churches dataset defines locations classified as religious organizations in Mecklenburg County, data is queried from Master Address Table.  
+**5.	Medical Facilities: ** This dataset was generated to publish a geospatial inventory of Medical Facilities in Mecklenburg County, NC. This data serves to support and assist the Charlotte Mecklenburg Planning Department, The City of Charlotte, and others in Urban Planning decisions.   
+**6.	Park : ** Park amenities for all parks in Mecklenburg County, including Charlotte, Davidson, Cornelius, Davidson, Huntersville, Matthews, Mint Hill, and Pineville.   
+**7.	Police: ** Charlotte-Mecklenburg Police Department Stations.  
+</p>
 ```{r read_data, echo=TRUE}
 primary.data<-
   st_read("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Midterm/data/2022/studentData.geojson")%>%
@@ -315,49 +357,6 @@ ggplot() + geom_sf(data = tracts20, fill = "grey40") +
 
 
 
-# 1. Introduction
-Zillow has realized that its housing market predictions are not as accurate as they could be because they do not factor in enough local intelligence. As such they have asked us to build a better predictive model of home prices for Mecklenberg County, NC.
-This model aims to build an accurate and generalizable hedonic model that predicts home prices for Mecklenberg County, NC by deconstructing overall home price into the value of constituent parts. Accurate models lead to only small differences between the predicted and observed values, and generalizable models accurately predict on new data and with comparable accuracy across various groups. By working to improve the accuracy and generalizability of the predictive model, we are ultimately striving to create a more useful decision-making tool. Such a model may be useful for local governments as they assess property taxes, for example.
-
-# 2. Data Manipulation and Visualization
-## 2.0 Setup
-In this section, we loaded necessary libraries, created plot theme options and map theme options, and identified functions of quintile breaks, and average nearest neighbor distance for further analysis.
-
-## 2.1 Data Wrangling
-In this section, we loaded Mecklenburg County data and other complementary datasets and conducted feature selection and engineering. Besides, for other analyses, we separate the whole dataset into and in advance of Mecklenburg. 
-
-Five categorical datasets were used in this project:
-**Mecklenburg County House Price and Internal Characteristics:** basic geometric dataset provided by the course in advance.
-
-**Mecklenburg County Base Data:** geometric data containing the geographic information of Mecklenburg County. 
-Mecklenburg County Beach Neighborhood: As an alternative way to using neighborhood data of Mecklenburg County Beach, we used Mecklenburg County Municipal Boundary data that is a polygon feature class of municipal boundaries within Mecklenburg County-Dade County, and specifically filter geometric data in Mecklenburg County Beach.
-
-**Census Data:** demographic variables from the ACS 2017 for census tracts in Mecklenburg County. We specifically selected 8 variables in the analysis:
-
-<p style="padding-left:2em;">
-**•	TotalPop:** Total population in each census tract
-**•	Whites:** White population in each census tract
-**•	MedHHInc:** Median household income in each census tract
-**•	MedRent:** Median Rent for properties in each census tract
-**•	TotalPoverty:** Population living under the level of poverty in each census tract
-**•	TotalUnit:** Total housing units in each census tract
-**•	pctWhite:** white population proportion in each census tract
-**• pctBachelors:** Bachelor population proportion in each census tract
-**•	pctPoverty:** Poverty population proportion in each census tract
-**•	pctTotalVacant: **Vacant unites proportion in each census tract
-•	</p>
-
-**Amenity Data:** most of the data come from the website of government: http://maps.co.mecklenburg.nc.us/openmapping/data.html.Compilatory data were chosen for describing amenities and public services of Mecklenburg County. The datasets we chose encompasses fireplace, police station, education opportunity, healthcare service, and entertainment accessibility. See each dataset below:
-
-<p style="padding-left:2em;">
-**1.	Public School:** Dataset contains points representing Elementary, Middle, and High Schools in Mecklenburg County.
-**2.	Bus station: ** A point feature class of CATS Bus Stops for Mecklenburg County.
-**3.	Fire station : ** Geographical representation of the physical locations of the Charlotte Fire Department Fire Stations.
-**4.	Church : ** Churches dataset defines locations classified as religious organizations in Mecklenburg County, data is queried from Master Address Table.
-**5.	Medical Facilities: ** This dataset was generated to publish a geospatial inventory of Medical Facilities in Mecklenburg County, NC. This data serves to support and assist the Charlotte Mecklenburg Planning Department, The City of Charlotte, and others in Urban Planning decisions. 
-**6.	Park : ** Park amenities for all parks in Mecklenburg County, including Charlotte, Davidson, Cornelius, Davidson, Huntersville, Matthews, Mint Hill, and Pineville. 
-**7.	Police: ** Charlotte-Mecklenburg Police Department Stations.
-</p>
 
 ## 2.2 Summary Statistics
 Present a table of summary statistics with variable descriptions. 
@@ -414,19 +413,19 @@ star_internal <- st_drop_geometry(factor_internal)
 star_amenity <- st_drop_geometry(factor_amenity)
 star_acs <- st_drop_geometry(factor_acs)
 
-stargazer(star_internal, type = "text", 
+stargazer(star_internal, type = "html", 
           title = "Table DATA 2.1 Summary Statistics of Internal Characteristics ",
           header = FALSE,
           #out = "try.html",
           single.row = TRUE)
 
-stargazer(star_amenity, type = "text",
+stargazer(star_amenity, type = "html",
           title = "Table DATA 2.2 Summary Statistics of Amenities Characteristics ",
           header = FALSE,
           #out = "try.html",
           single.row = TRUE)
 
-stargazer(star_acs, type = "text",
+stargazer(star_acs, type = "html",
           title = "Table DATA 2.3 Summary Statistics of ACS ",
           header = FALSE,
           #out = "try.html",
@@ -454,6 +453,7 @@ challenge_num<-
           
 Present a table of summary statistics with variable descriptions. 
 Sort these variables by their category (internal characteristics, amenities/public services or spatial structure). Check out the `stargazer` package for this.
+
 ## 2.3 Correlation Matrix
 For better visualization, features were divided into internal characteristics and amenity again when creating correlation matrix. Based on the graduated color, some features have strong relation with Sale Price, such as bathroom, fireplace and house age.
 
@@ -530,6 +530,7 @@ st_drop_geometry(all.sf) %>%
      labs(title = "Price as a function of continuous variables") +
      plotTheme()
 ```
+
 ## 2.5 Map Home Prices
 ```{r}
 maphomeprice <-topredict%>%filter(prisqft!= 'Inf')
@@ -624,12 +625,43 @@ ggplot() +
   plotTheme()
 ```
 
-# 3 Methods
+
+# III Methods
+Method:
+The mean objective of this analysis is to train a robust model to predict house price as accurately as possible. Accordingly, this section started to provide a detailed interpretation on the process of the model building and training.
+
+Here are three models used in this part.
+`model1`: the primitive model, where all the facotrs are in. 
+`model2 `: the model after training, with the facotrs selected.
+`model3`: the model to figure out the 'challenge'
 
 
+data，model, feature, result(map).   why you interprete it
+<p style="text-indent:32px;">
+**•	Data and Sample:** In order to accurately build and test models, we randomly split the whole into two parts: with 60% of observations for model training and with 40% of observations for model testing. 
+**•	Dependent Variable:** The dependent variable is home sale price: *Price*
+**•	Independent Variables:** Based on the hedonic home price model, potential features should encompass at least three components: internal characteristics, like the number of bathrooms; neighborhood amenities/public services, like hospital accessibility; and the underlying spatial process of prices.Plus, we also take the ACS data into consideration. 
+
+After creating features and engineering and checking correlation coefficients(in `model1`), *38* features are eligible for the model and obviously or slightly correlated with that were the initial independent variables for model building.  In further modifications of the model, we mainly considered p-values in determining the correlation of variables and removed the values with larger p-values:*totalac, park_nn1, park_nn2, firestation_nn1, medical_nn1, TotalPop*. We gradually screened out variables and eventually selected only *32* robust features included in the final model `model2`.
 
 
+**•	Procedure:** The primitive approach used in this analysis for model building is Ordinary Least Squares Regression (OLS) which is aimed at predicting the of houses as a function of several statistical parameters such as intercept, slope and selected features. 
 
+In order to determine which features were able to significantly increase the accuracy and generalizability of the model, we systematically compared, plotted, and mapping the mean absolute errors (MAE), mean absolute percent errors (MAPE), as well as root mean square errors (RMSE, the standard deviation of the residuals) between original and predicted of both training set and test set, conducted the cross-validation on 100 folds, explored the underlying spatial pattern of price and errors caused by problematic prediction. To address the problem of neglecting the underlying spatial correlation caused by neighborhood, we then compared, plotted, and mapped the mean absolute errors (MAE), and mean absolute percent errors (MAPE) on the test set between baseline model without neighborhood features and updated model with neighborhood features, and then determined our final model based on series model examinations.
+</p>
+In this process include: 
+
+# IV. Result
+## 4.1 Dataset Splitting and Model Building
+Firstly, as mentioned above, we randomly split the variables into 60% and 40%.
+Secondly,we built three models with different features to examine which features should be included.
+
+`model1`: the primitive model with baseline, where all the facotrs are in. 
+`model2 `: the model after training, with the facotrs selected.
+`model3`: it is based on `model2`, the function of model3 is to figure out the 'challenge' to complete the competition.
+
+
+The baseline model contained 10 internal characteristic features: *age, storyheigh, heatedare, numfirepla, totalac, fullbaths, halfbaths, bedrooms, units, prisqft* and ,as well as 18 amenity features. Plus, there are also some ACS features.
 ```{r model1}
 
 set.seed(42)
@@ -649,14 +681,16 @@ model1 <- lm(price ~ ., data = as.data.frame(model.training) %>%
                          colnames(factor_acs)
 ))
 
-# stargazer(model1, type = "html", 
-#           title = "Table 4.1.1 Summary Statistics of Model 1 ",
-#           out = "model1.html",
-#           header = FALSE,
-#           single.row = TRUE)
+stargazer(model1, type = "html", 
+           title = "Table 4.1.1 Summary Statistics of Model 1 ",
+           out = "model1.html",
+           header = FALSE,
+           single.row = TRUE)
 
 ```
 
+## 4.2 Table of results (training set)
+In this part, we study the Summary Statistics of Model 1 to select variables to build our final model. We mainly considered p-values in determining the correlation of variables and removed the values with larger p-values. The R^2^ is 0.615. 
 ```{r model2}
 model2 <- lm(price ~ ., data = as.data.frame(model.training) %>% 
            dplyr::select(# internal features
@@ -684,7 +718,7 @@ model.test <-
 
 
 ```
-## Table of results (training set)
+
 ```{r resultsmodel}
 stargazer(model2, type = "html", 
           title = "Table 4.1.2 Summary Statistics of Model 2 ",
@@ -693,7 +727,10 @@ stargazer(model2, type = "html",
           single.row = TRUE)
 
 ```
-## Table of goodness of fit (test set)
+
+## 4.3 Table of goodness of fit (test set)
+The Mean Absolute Errors (MAE) and Mean Absolute Percent Errors (MAPE) are statistical measures of how accurate a forecast system is.Based on the following table, the MAE is 125091.8, the errors are accounted for 0.4281398.
+
 ```{r fit}
 test_fit<-as.data.frame(cbind(mean(model.test$SalePrice.AbsError,na.rm = T),
                               mean(model.test$SalePrice.APE,na.rm = T)))
@@ -705,7 +742,14 @@ kable(test_fit,
 ```
 
 
-## CV Results
+## 4.4 Cross-Validation Results
+Note that R^2^ judges model accuracy on the data used to train the model. Cross-validation ensures that the goodness of fit results for a single hold out is not a fluke. While there are many forms of cross-validation.
+
+This section conducted cross-validation to assess how our model would generalize to other independent data sets, in which we could flag problem of overfitting or feature selection bias.
+
+Both a summary table and distribution plots of R-square, RMSE, and MAE in each of 100 fold are shown below.The cross-validation output provides very important goodness of fit information. The value of each metric is actually the mean value across all folds. The train function returns many objects (names(reg.cv)), one of which is resample which provides goodness of fit for each of the 100 folds. 
+
+The variation of 100 folds can also be visualized with a histogram of across-fold MAE. Although most of the errors are clustering tightly together, some errors are scattered, indicating the inconsistency of the model prediction.
 ```{r cv_results}
 fitControl <- trainControl(method = "cv", number = 100)
 set.seed(42)
@@ -747,7 +791,6 @@ ggplot(data = reg.cv$resample) +
 
 ```
 
-## Pred vs Obs Scatterplot
 ```{r pred_vs_obs}
 reg.cv$resample %>% 
   pivot_longer(-Resample) %>% 
@@ -762,8 +805,21 @@ reg.cv$resample %>%
   plotTheme()
 ```
 
+## 4.5 Pred vs Obs Scatterplot
+/#缺一张图！
 
-## Residuals Map w/ Moran's I
+## 4.6 Map of residuals for our test:\n setResiduals Map w/ Moran's I/plot of the spatial lag in errors
+lIn this section, we focus on verifying whether the spatial distribution will have an impact on our model. We mainly use the following approaches:
+<p style="padding-left:2em;">
+**residual maps:** It shows the residuals in different places in Mecklenberg County, and we can also observed the distribution of residuals.
+/#缺失#
+**MoranTest:**An approach for measuring spatial autocorrelation. In the picture, the frequency of all 999 randomly permutated I are plotted as a histogram with the Observed I indicated by the orange line. That the observed I is higher then all of the 999 randomly generated, so it provides visual confirmation of spatial autocorrelation. 
+
+
+**spatial lag in errors：** A spatial lag is a variable that averages the neighboring values of a location. 
+#可能的结论，但是缺失了The spatial lag of error plot shows that as home price errors increase, the nearby home price errors slightly decrease, indicating that our model errors are rarely spatially autocorrelated.
+</p>
+
 ```{r moranTest}
 coords <- st_coordinates(all.sf) 
 
@@ -798,25 +854,9 @@ ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
   plotTheme()
 
 ```
-Plot predicted prices as a function of observed prices
-
-```{r delete, echo=FALSE}
-left_join(
-  st_drop_geometry(model.test) %>%
-    group_by(vfd) %>%
-    summarize(meanPrice = mean(price, na.rm = T)),
-    mutate(model.test, predict.fe = 
-                        predict(lm(price ~ vfd, data = model.test), 
-                        model.test)) %>%
-    st_drop_geometry %>%
-    group_by(vfd) %>%
-      summarize(meanPrediction = mean(predict.fe))) %>%
-      kable() %>% kable_styling()
 
 
-
-```
-
+## 4.7 Plot predicted prices as a function of observed prices
 ```{r delete, echo=FALSE}
 reg.nhood <- lm(price ~ ., data = as.data.frame(model.training) %>% 
                                  dplyr::select(price,age, storyheigh,heatedarea,#prisqft,
@@ -875,20 +915,26 @@ bothRegressions %>%
   plotTheme()
 ```
 
-## Predicted Map (Test Set)
-```{r}
-ggplot() +
-  geom_sf(data = st_union(tracts20), fill = "grey50") +
-  geom_sf(data = model.test, aes(colour = q5(prisqft)), 
-          show.legend = "point", size = .6) +
-  scale_colour_manual(values = palette5,
-                   labels=qBr(model.test,"prisqft"),
-                   name="Quintile\nBreaks") +
-  labs(title="Price predicted per sqft, Mecklenburg County") +
-  mapTheme()
-```
-## MAPE map by neighborhood
+## 4.8 Map of MAPE by neighborhood
+/#表错了，应该加上MAPE
+Indicated in the summary table as well as the choropleth map below, MAPE varies across neighborhoods (only 22 neighborhoods left in the test set). 
+缺结论
 
+```{r  echo=FALSE}
+left_join(
+  st_drop_geometry(model.test) %>%
+    group_by(vfd) %>%
+    summarize(meanPrice = mean(price, na.rm = T)),
+    mutate(model.test, predict.fe = 
+                        predict(lm(price ~ vfd, data = model.test), 
+                        model.test)) %>%
+    st_drop_geometry %>%
+    group_by(vfd) %>%
+      summarize(meanPrediction = mean(predict.fe))) %>%
+      kable() %>% kable_styling()
+
+
+```
 
 ```{r}
 st_drop_geometry(bothRegressions) %>%
@@ -906,7 +952,41 @@ st_drop_geometry(bothRegressions) %>%
       labs(title = "Mean test set MAPE by neighborhood") +
       mapTheme()
 ```
-## Scatterplot - MAPE by neighborhood mean price
+
+
+## 4.9 Predicted Map (Test Set)
+```{r}
+ggplot() +
+  geom_sf(data = st_union(tracts20), fill = "grey50") +
+  geom_sf(data = model.test, aes(colour = q5(prisqft)), 
+          show.legend = "point", size = .6) +
+  scale_colour_manual(values = palette5,
+                   labels=qBr(model.test,"prisqft"),
+                   name="Quintile\nBreaks") +
+  labs(title="Price predicted per sqft, Mecklenburg County") +
+  mapTheme()
+```
+
+
+做过了## MAPE map by neighborhood
+```{r, eval=FALSE, include=FALSE}
+st_drop_geometry(bothRegressions) %>%
+  group_by(Regression, vfd) %>%
+  summarize(mean.MAPE = mean(SalePrice.APE, na.rm = T)) %>%
+  ungroup() %>% 
+  left_join(nhood.sf) %>%
+    st_sf() %>%
+    ggplot() + 
+      geom_sf(aes(fill = mean.MAPE)) +
+      geom_sf(data = bothRegressions, colour = "black", size = .05) +
+      facet_wrap(~Regression) +
+      scale_fill_gradient(low = palette5[1], high = palette5[5],
+                          name = "MAPE") +
+      labs(title = "Mean test set MAPE by neighborhood") +
+      mapTheme()
+```
+
+## 4.10 Scatterplot - MAPE by neighborhood mean price
 ```{r}
 nhood_sum <- model.test %>% 
   group_by(vfd) %>%
@@ -929,7 +1009,9 @@ MAPE.nhood.plot
 ```
 
 
-#census
+## 4.11 Split by Census Groups
+In this part, we chose two variables:*race*, *income* and plot them by census tract.The first map shows that Mecklenburg County is racially divided, with predominantly white neighborhoods to the north and south, which are also where housing prices are higher. The lower income groups are scattered in the more central parts of Mecklenburg County.
+
 ```{r}
 tracts20 <- tracts20 %>%
   mutate(percentWhite = Whites / TotalPop,
@@ -969,20 +1051,20 @@ st_join(bothRegressions, tracts20) %>%
 ```
 
 
-## Split by Census Groups
 
-# Discussion
+# V Discussion
 Is this an effective model? What were some of the more interesting variables?  How much of the variation in prices could you predict? Describe the more important features? Describe the error in your predictions?  According to your maps, could you account the spatial variation in prices?  Where did the model predict particularly well? Poorly? Why do you think this might be?
-## Accuracy
 
-## Generalizability
+## 5.1 Accuracy
 
-# Conclusion
+## 5.2 Generalizability
+
+# VI Conclusion
 Would you recommend your model to Zillow? Why or why not? How might you improve this model? 
 
-# Challenge
+# VII Challenge
 
-```{r comp_model, eval=FALSE, include=FALSE}
+```{r eval=FALSE, include=FALSE}
 model3 <- lm(price ~ ., data = as.data.frame(topredict) %>% 
            dplyr::select(# internal features
                          price,age, storyheigh,heatedarea,#prisqft,
@@ -1001,7 +1083,7 @@ model3 <- lm(price ~ ., data = as.data.frame(topredict) %>%
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # challenge<- challenge %>%
 #   dplyr::select(-price,-prisqft)
 
