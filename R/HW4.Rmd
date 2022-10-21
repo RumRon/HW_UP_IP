@@ -1,0 +1,40 @@
+---
+title: "Targeting A Housing Subsidy - MUSA508 HW4"
+author: "Rui Jiang"
+date: "October 21,2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+Emil City is considering a more proactive approach for targeting home owners who qualify for a home repair tax credit program. This tax credit program has been around for close to twenty years, and while the Department of Housing and Community Development (HCD) tries to proactively reach out to eligible homeowners ever year, the uptake of the credit is woefully inadequate. Typically only 11% of eligible homeowners they reach out to take the credit. <br />
+The consensus at HCD is that the low conversion rate is due to the fact that the agency reaches out to eligible homeowners at random. Unfortunately, we don’t know the cost/benefit of previous campaigns, but we should assume it wasn’t good. To move toward a more targeted campaign, HCD has recently hired you, their very first data scientist, to convert all the client-level data collected from previous campaigns into a decision-making analytic that can better target their limited outreach resources.<br />
+
+```{r load_packages, warning = FALSE}
+options(scipen=10000000)
+
+library(tidyverse)
+library(kableExtra)
+library(caret)
+library(knitr) 
+library(pscl)
+library(plotROC)
+library(pROC)
+library(lubridate)
+```
+
+```{r load_data, cache = TRUE}
+palette5 <- c("#981FAC","#CB0F8B","#FF006A","#FE4C35","#FE9900")
+palette4 <- c("#981FAC","#FF006A","#FE4C35","#FE9900")
+palette2 <- c("#981FAC","#FF006A")
+
+
+advertising <- read.csv("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Week_7/advertising_clean.csv")
+
+```
