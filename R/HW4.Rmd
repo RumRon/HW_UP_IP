@@ -10,11 +10,13 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE )
 ```
 
-Emil City is considering a more proactive approach for targeting home owners who qualify for a home repair tax credit program. This tax credit program has been around for close to twenty years, and while the Department of Housing and Community Development (HCD) tries to proactively reach out to eligible homeowners ever year, the uptake of the credit is woefully inadequate. Typically only 11% of eligible homeowners they reach out to take the credit. <br />
-The consensus at HCD is that the low conversion rate is due to the fact that the agency reaches out to eligible homeowners at random. Unfortunately, we don’t know the cost/benefit of previous campaigns, but we should assume it wasn’t good. To move toward a more targeted campaign, HCD has recently hired you, their very first data scientist, to convert all the client-level data collected from previous campaigns into a decision-making analytic that can better target their limited outreach resources.<br />
+## 1.Motivation
+ 
+This project is helping Emil City target homeowners who qualify for a home repair tax credit program. This tax credit program has been around for close to twenty years. While the Department of Housing and Community Development (HCD) tries to reach out to eligible homeowners every year proactively, the uptake of the credit is woefully inadequate. Typically only 11% of eligible homeowners reach out to take the credit. <br />
+The consensus at HCD is that the low conversion rate is due to the fact that the agency reaches out to eligible homeowners at random. Unfortunately, we don’t know the cost/benefit of previous campaigns, but we should assume it wasn’t good. To move toward a more targeted campaign, this project will try to make a decision-making analytic that can better target limited outreach resources.<br />
 
 ```{r load_packages, warning = FALSE}
 options(scipen=10000000)
@@ -27,14 +29,472 @@ library(pscl)
 library(plotROC)
 library(pROC)
 library(lubridate)
+
 ```
 
 ```{r load_data, cache = TRUE}
 palette5 <- c("#981FAC","#CB0F8B","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#981FAC","#FF006A","#FE4C35","#FE9900")
 palette2 <- c("#981FAC","#FF006A")
+root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
 
-
-advertising <- read.csv("https://raw.githubusercontent.com/mafichman/MUSA_508_Lab/main/Week_7/advertising_clean.csv")
+housing <- read.csv("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/Chapter6/housingSubsidy.csv")
 
 ```
+
+
+##  2. Data Visualizations and Exploration
+```{r exploratory}
+housing  %>%
+  dplyr::select(y,unemploy_rate,inflation_rate, spent_on_repairs, age, cons.price.idx, cons.conf.idx) %>%
+  gather(Variable, value, -y) %>%
+    ggplot(aes(y, value, fill=y)) + 
+      geom_bar(position = "dodge", stat = "summary", fun = "mean") + 
+      facet_wrap(~Variable, scales = "free") +
+      scale_fill_manual(values = palette2) +
+      labs(x="enter the program", y="Value", 
+           title = "Feature associations with the likelihood of take the Subsidy") +
+      theme(legend.position = "none")
+```
+
+It's hard to interpret data visualizations of count figures. The only thing we can tell is inflation rate might have influences on targets. 
+
+```{r exploratory_continuous, message = FALSE, warning = FALSE}
+housing  %>%
+  dplyr::select(y,unemploy_rate,inflation_rate, spent_on_repairs, age, cons.price.idx, campaign) %>%
+  gather(Variable, value, -y) %>%
+  ggplot() + 
+  geom_density(aes(value, color=y), fill = "transparent") + 
+  facet_wrap(~Variable, scales = "free") +
+  scale_fill_manual(values = palette2) +
+  labs(title = "Feature distributions enter vs. no enter",
+        subtitle = "(continous outcomes)")
+```
+
+From feature distribution figures, it is possible that age, inflation_rate, spent_on_repairs, unemploy_rate, and some other features look like they have a significant impact on the target around certain values. For example, less than 5100 and more than 5100 spent on repairs might affect the homeowners' decision on whether enter the program or not.
+
+```{r exploratory_binary, message = FALSE, warning = FALSE}
+housing %>%
+    dplyr::select(y, job, marital, education, mortgage) %>%
+    gather(Variable, value, -y) %>%
+    count(Variable, value, y) %>%
+      ggplot(., aes(value, n, fill = y)) +   
+        geom_bar(position = "dodge", stat="identity") +
+        facet_wrap(~Variable, scales="free") +
+        scale_fill_manual(values = palette2) +
+        labs(x="Click", y="Value",
+             title = "Feature associations with the likelihood of enter the program",
+             subtitle = "Categorical features") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r exploratory_binary_continuous, message = FALSE, warning = FALSE}
+housing %>%
+    dplyr::select(y,taxbill_in_phl, contact, poutcome,month) %>%
+    gather(Variable, value, -y) %>%
+    count(Variable, value, y) %>%
+      ggplot(., aes(value, n, fill = y)) +   
+        geom_bar(position = "dodge", stat="identity") +
+        facet_wrap(~Variable, scales="free") +
+        scale_fill_manual(values = palette2) +
+        labs(x="Click", y="Value",
+             title = "Feature associations with the likelihood of enter the program",
+             subtitle = "Categorical features") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+In common sense, age, job, marital status, and education level will influence how people treat the actions (mailers, phone calls, and information/counseling sessions at the HCD offices). Some other features included in this dataset are more like used for marketing analysis. This project will first use all features to make a model.
+
+## 3. Split data into a 65/35 training/test set.
+
+```{r create_partition}
+housing <-
+  housing %>%
+  dplyr::filter(education !="illiterate")
+
+set.seed(42)
+trainIndex <- createDataPartition(housing$y, p = .65,
+                                  list = FALSE,
+                                  times = 1)
+housingTrain <- housing[ trainIndex,]
+housingTest  <- housing[-trainIndex,]
+
+```
+
+```{r run_model_all_features, results ="hide"}
+housingModel <- glm(y_numeric ~ .,
+                  data=housingTrain %>% 
+                    dplyr::select( y_numeric,unemploy_rate, cons.conf.idx,marital,age,job,
+                                   marital,education,taxLien,mortgage,day_of_week,campaign,
+                                   pdays,previous,cons.price.idx,poutcome,
+                                   contact,month,taxbill_in_phl),
+                  family="binomial" (link="logit"))
+
+```
+
+
+```{r plot_testProbs}
+
+testProbs1 <- data.frame(Outcome = as.factor(housingTest$y_numeric),
+                        Probs = predict(housingModel, housingTest, type= "response"))
+
+ggplot(testProbs1, aes(x = Probs, fill = as.factor(Outcome))) + 
+  geom_density() +
+  facet_grid(Outcome ~ .) +
+  scale_fill_manual(values = palette2) +
+  labs(x = "Enter the Program", y = "Density of probabilities",
+       title = "Distribution of predicted probabilities by observed outcome") +
+  theme(strip.text.x = element_text(size = 18),
+        legend.position = "none")
+```
+
+The Sensitivity (True Positive Rate) for a model with all the features is very low.
+
+## 4.  Engineer new features.
+
+### a. Interpret new features.
+There are tons of job, education, and marital types in our data set. Most have only a handful of observations. So "Enter Average" columns for each feature to use a continuous instead of a categorical variable.<br />
+For age, repair cost, campaign, taxLien, and unemployment rate, new "Grade" columns were created for each feature to have meaningful categorical variables depending on the visualization of data figures in Section 2.
+
+```{r feature_engineer, cache = TRUE}
+#job
+housing_job <- 
+  housing %>% 
+  group_by(job) %>% 
+  summarize(totEnters = sum(y_numeric), 
+            n = n(), 
+            jobEnterAvg = 100*(totEnters/n)) %>%
+  dplyr::select(-n, -totEnters) 
+housing <- right_join(housing, housing_job)
+#education
+housing_education <- 
+  housing %>% 
+  group_by(education) %>% 
+  summarize(totEnters = sum(y_numeric), 
+            n = n(), 
+            eduEnterAvg = 100*(totEnters/n)) %>%
+  dplyr::select(-n, -totEnters) 
+housing <- right_join(housing, housing_education)
+#marital
+housing_marital <- 
+  housing %>% 
+  group_by(marital) %>% 
+  summarize(totEnters = sum(y_numeric), 
+            n = n(), 
+            marEnterAvg = 100*(totEnters/n)) %>%
+  dplyr::select(-n, -totEnters) 
+housing <- right_join(housing, housing_marital)
+#campaign
+housing_campaign <- 
+  housing %>% 
+  group_by(campaign) %>% 
+  summarize(totEnters = sum(y_numeric), 
+            n = n(), 
+            campaignEnterAvg = 100*(totEnters/n)) %>%
+  dplyr::select(-n, -totEnters) 
+housing <- right_join(housing, housing_campaign)
+#season
+housing <- 
+  housing %>% 
+  mutate(season = case_when(month == "apr"|month == "mar"| month == "may"  ~ "Spring",
+                            month == "aug"|month == "jun"| month == "jul"  ~ "Summer",
+                            month == "sep"|month == "oct"| month == "nov"  ~ "Fall",
+                            month == "dec"  ~ "Winter"))
+housing<-
+  housing %>%
+  mutate(ageGrade = case_when(age < 31 ~ "30-",
+                              age > 30 & age < 56 ~ "31-55",
+                              age > 55 ~ "55+")) %>%
+  mutate(repairGrade = case_when(spent_on_repairs < 5100 ~ "5100-",
+                                 spent_on_repairs > 5100 ~ "5100+")) %>%
+  mutate(inflationGrade = case_when(inflation_rate < 2  ~ "2-",
+                                    inflation_rate >= 2 ~ "2+")) %>%
+  mutate(unemployGrade = case_when(unemploy_rate < 0 ~ "0-",
+                                   unemploy_rate> 0 ~ "0+")) %>%
+  mutate(taxLienGrade = case_when(taxLien == "no" ~ 0,
+                                  taxLien == "unknown" ~ 0,
+                                  taxLien == "yes" ~ 1)) %>%
+  mutate(campaignGrade = case_when(campaign < 5 ~ "5-",
+                                   campaign > 4 ~ "5+"))
+```
+
+```{r second_model}
+set.seed(42)
+trainIndex <- createDataPartition(housing$y, p = .65,
+                                  list = FALSE,
+                                  times = 1)
+housingTrain2 <- housing[ trainIndex,]
+housingTest2  <- housing[-trainIndex,]
+
+housingModel2 <- glm(y_numeric ~ .,
+                  data=housingTrain2 %>% 
+                    dplyr::select(y_numeric, contact,poutcome,cons.price.idx,
+                                  cons.conf.idx,inflation_rate,campaignGrade,
+                                  taxLienGrade,unemployGrade,repairGrade,ageGrade,
+                                  marEnterAvg,eduEnterAvg,jobEnterAvg,month),
+                  family="binomial" (link="logit"))
+
+
+
+```
+
+
+### b. Show a regression summary for both regression.
+
+####Summary of all features model
+
+```{r summary1}
+summary(housingModel)
+```
+#### summary of new feature added model
+
+```{r summary2}
+summary(housingModel2)
+```
+
+### c. Cross Validate and facetted plots of ROC, Sensitivity and Specificity.
+
+#### all features model cv
+
+```{r cv_model1}
+testProbs1 <- 
+  testProbs1 %>%
+  mutate(predOutcome  = as.factor(ifelse(testProbs1$Probs > 0.5 , 1, 0)))
+
+caret::confusionMatrix(testProbs1$predOutcome, testProbs1$Outcome, 
+                       positive = "1")
+auc(testProbs1$Outcome, testProbs1$Probs)
+
+ctrl1 <- trainControl(method = "cv", number = 100, classProbs=TRUE, summaryFunction=twoClassSummary)
+
+cvFit1 <- train(y~ .,
+                  data=housing %>% 
+                    dplyr::select(y, unemploy_rate, cons.conf.idx,marital,age,job,marital,education,
+                                  taxLien,mortgage,day_of_week, campaign,pdays,previous,
+                                  cons.price.idx,poutcome,contact,month,taxbill_in_phl), 
+                method="glm", family="binomial",
+                metric="ROC", trControl = ctrl1)
+
+cvFit1
+```
+#### new features added model cv
+
+```{r cv_model2}
+
+testProbs2 <- data.frame(Outcome = as.factor(housingTest2$y_numeric),
+                        Probs = predict(housingModel2, housingTest2, type= "response"))
+
+
+testProbs2 <- 
+  testProbs2 %>%
+  mutate(predOutcome  = as.factor(ifelse(testProbs2$Probs > 0.5 , 1, 0)))
+
+caret::confusionMatrix(testProbs2$predOutcome, testProbs2$Outcome, 
+                       positive = "1")
+
+auc(testProbs1$Outcome, testProbs1$Probs)
+
+ctrl2 <- trainControl(method = "cv", number = 100, classProbs=TRUE, summaryFunction=twoClassSummary)
+
+cvFit2 <- train(y~ .,
+                  data=housing %>% 
+                    dplyr::select(y,contact,poutcome,cons.price.idx,
+                                  cons.conf.idx,inflation_rate,campaignGrade,
+                                  taxLienGrade,unemployGrade,repairGrade,ageGrade,
+                                  marEnterAvg,eduEnterAvg,jobEnterAvg,month), 
+                method="glm", family="binomial",
+                metric="ROC", trControl = ctrl2)
+
+cvFit2
+```
+#### ROC, Sensitivity and Specificity of all features model
+
+```{r goodness_metrics1, message = FALSE, warning = FALSE}
+dplyr::select(cvFit1$resample, -Resample) %>%
+  gather(metric, value) %>%
+  left_join(gather(cvFit1$results[2:4], metric, mean)) %>%
+  ggplot(aes(value)) + 
+    geom_histogram(bins=35, fill = "#FF006A") +
+    facet_wrap(~metric) +
+    geom_vline(aes(xintercept = mean), colour = "#981FAC", linetype = 3, size = 1.5) +
+    scale_x_continuous(limits = c(0, 1)) +
+    labs(x="Goodness of Fit", y="Count", title="CV Goodness of Fit Metrics",
+         subtitle = "Across-fold mean reprented as dotted lines")
+
+```
+
+#### ROC, Sensitivity and Specificity of new features added model
+
+```{r goodness_metrics2, message = FALSE, warning = FALSE}
+dplyr::select(cvFit2$resample, -Resample) %>%
+  gather(metric, value) %>%
+  left_join(gather(cvFit1$results[2:4], metric, mean)) %>%
+  ggplot(aes(value)) + 
+    geom_histogram(bins=35, fill = "#FF006A") +
+    facet_wrap(~metric) +
+    geom_vline(aes(xintercept = mean), colour = "#981FAC", linetype = 3, size = 1.5) +
+    scale_x_continuous(limits = c(0, 1)) +
+    labs(x="Goodness of Fit", y="Count", title="CV Goodness of Fit Metrics",
+         subtitle = "Across-fold mean reprented as dotted lines")
+
+```
+
+Comparing ROC, Sensitivity, and Specificity for two models, the one that added new features slightly increased the accuracy. The "True Positive Rate" for both models is low. It might be caused by low positive in the original dataset (In this case, a very small number of homeowners enter the program), or the features are not highly related to the dependent variable we are trying to model.
+
+## 5. ROC curve for new model
+```{r roc_curve, warning = FALSE, message = FALSE}
+ggplot(testProbs2, aes(d = as.numeric(Outcome), m = Probs)) +
+  geom_roc(n.cuts = 50, labels = FALSE, colour = "#FE9900") +
+  style_roc(theme = theme_grey) +
+  geom_abline(slope = 1, intercept = 0, size = 1.5, color = 'grey') +
+  geom_abline(slope = 0, intercept = 1, size = 0.5, color = 'black') +
+  labs(title = "ROC Curve - enterModel")
+```
+
+It’s better when the yellow line is more curved to the black line: y=1, but it will be overfitting if the yellow line is too close to the black line. Usually ROC curve is more useful to compare with ROC curve of other model for the same dependent variable.
+
+## 6. Cost/Benefit Analysis
+### a. The cost/benefit equation for each confusion metric.
+
+1. True Positive - Predicted correctly homeowner would take the credit; allocated the marketing resources, and 25% took the credit.
+    
+    [0.25(66000-5000-2850) - 0.75(2850)] * count = [0.25(58150)-0.75(2850)] * count = [14537.5 - 2137.5] * count = 12400 * count
+    
+2. True Negative - Predicted correctly homeowner would not take the credit, no marketing resources were allocated, and no credit was allocated.
+    
+    0
+    
+3. False Positive - Predicted incorrectly homeowner would take the credit; allocated marketing resources; no credit allocated.
+    
+    -2850 * count
+    
+4. False Negative - We predicted that a homeowner would not take the credit but they did. These are likely homeowners who signed up for reasons unrelated to the marketing campaign. Thus, we ‘0 out’ this category, assuming the cost/benefit of this is $0.
+    
+    0
+    
+### b. Cost/Benefit Table
+```{r cost_benefit}
+cost_benefit_table <-
+   testProbs2 %>%
+      count(predOutcome, Outcome) %>%
+      summarize(True_Negative = sum(n[predOutcome==0 & Outcome==0]),
+                True_Positive = sum(n[predOutcome==1 & Outcome==1]),
+                False_Negative = sum(n[predOutcome==0 & Outcome==1]),
+                False_Positive = sum(n[predOutcome==1 & Outcome==0])) %>%
+       gather(Variable, Count) %>%
+       mutate(Revenue =
+               ifelse(Variable == "True_Negative", 0 ,
+               ifelse(Variable == "True_Positive", Count * 12400 ,
+               ifelse(Variable == "False_Negative",0,
+               ifelse(Variable == "False_Positive", (-2850) * Count, 0))))) %>%
+    bind_cols(data.frame(Description = c(
+              "We correctly predicted no enter",
+              "We correctly predicted an enter",
+              "We predicted no enter but customer entered",
+              "We predicted homeowner enter and homeowner did not")))
+
+kable(cost_benefit_table,
+       caption = "Cost/Benefit Table") %>% kable_styling()%>%
+        footnote(general_title = "\n", general = "Table 6.1")
+```
+
+```{r iterate_threshold}
+iterateThresholds <- function(data) {
+  x = .01
+  all_prediction <- data.frame()
+  while (x <= 1) {
+  
+  this_prediction <-
+      testProbs2 %>%
+      mutate(predOutcome = ifelse(Probs > x, 1, 0)) %>%
+      count(predOutcome, Outcome) %>%
+      summarize(True_Negative = sum(n[predOutcome==0 & Outcome==0]),
+                True_Positive = sum(n[predOutcome==1 & Outcome==1]),
+                False_Negative = sum(n[predOutcome==0 & Outcome==1]),
+                False_Positive = sum(n[predOutcome==1 & Outcome==0])) %>%
+     gather(Variable, Count) %>%
+     mutate(Revenue =
+               ifelse(Variable == "True_Negative", 0,
+               ifelse(Variable == "True_Positive",12400 * Count,
+               ifelse(Variable == "False_Negative", 0,
+               ifelse(Variable == "False_Positive", -2850 * Count, 0)))),
+            Threshold = x)
+  
+  all_prediction <- rbind(all_prediction, this_prediction)
+  x <- x + .01
+  }
+
+return(all_prediction)
+}
+
+whichThreshold <- iterateThresholds(testProbs2)
+```
+
+### c. confusion metric outcomes for each Threshold.
+
+```{r confusion_metric_outcomes}
+whichThreshold %>%
+  ggplot(.,aes(Threshold, Revenue, colour = Variable)) +
+  geom_point() +
+  scale_colour_manual(values = palette5[c(5, 1:3)]) +    
+  labs(title = "Revenue by confusion matrix type and threshold",
+       y = "Revenue") +
+  plotTheme() +
+  guides(colour=guide_legend(title = "Confusion Matrix")) 
+```
+
+### d. Threshold as a function of Total_Revenue and Total_Count_of_Credits.
+
+```{r total_credits}
+
+whichThreshold_count <- 
+whichThreshold %>% 
+    group_by(Threshold) %>% 
+    filter(.,Variable == "True_Positive") %>%
+    summarize(total_credits = (sum(Count))* 5000 * 0.25)
+
+  ggplot(whichThreshold_count)+
+  geom_line(aes(x = Threshold, y = total_credits))+
+    labs(title = "Total Credits Applied By Threshold For Test Sample")
+
+```
+
+A higher threshold means fewer positive predictions, which leads to lower true positives (and false positives). So then, the number of 25% of the true positive homeowners will also be fewer, resulting in lower total credits spent for this program.
+
+```{r revenue_model}
+
+whichThreshold_revenue <- 
+whichThreshold %>% 
+    group_by(Threshold) %>% 
+    summarize(Revenue = sum(Revenue))
+
+  ggplot(whichThreshold_revenue)+
+  geom_line(aes(x = Threshold, y = Revenue))+
+  geom_vline(xintercept =  pull(arrange(whichThreshold_revenue, -Revenue)[1,1]))+
+    labs(title = "Model Revenues By Threshold For Test Sample",
+         subtitle = "Vertical Line Denotes Optimal Threshold")
+
+```
+
+When the threshold is 0.13 in this model, the revenue is the highest.
+
+### e. Table of the Total_Revenue and Total_Count_of_Credits allocated for 50%_Threshold and Optimal_Threshold.
+
+```{r table_for_two_threshold}
+total_threshold <- merge(x = whichThreshold_count, y = whichThreshold_revenue, by = "Threshold", all = TRUE)
+my_threshold <- total_threshold %>%
+  filter((Threshold < 0.51 & Threshold > 0.491) |(Threshold < 0.139 & Threshold > 0.129))
+
+kable(my_threshold) %>%
+  kable_styling() %>%
+  footnote(general_title = "\n",
+           general = "Table 6.2")
+```
+
+
+## 7. Conclusion
+
+This model shouldn't be put into production. The features in this dataset feel more useful for marking analysis. If there are other features related to these homeowners about other aspects, the model might be more accurate. And other campaign information would also be helpful. Also, the dataset has a few homeowners who entered the program. Rare events are difficult to predict and simulate but can be extremely valuable. <br />
+The data-level approach involves resampling to reduce the class imbalance. The two commonly used sampling techniques include over-sampling and under-sampling. The algorithmic-level approach leverages machine-learning algorithms that are modified to accommodate imbalanced data. It compensates for the skew by assigning weights to respective classes, introducing biases and penalty constants. Ensemble methods involve a mixture-of-experts approach. These methods combine algorithmic and data approaches to incorporate different misclassification costs for each class in the learning phase. The two most popular ensemble-learning algorithms are Boosting and Bagging. Ensemble approaches rely on combining a large number of relatively weak and simple models to obtain a stronger ensemble prediction. (https://www.mu-sigma.com/our-musings/blog/rare-event-modeling) <br />
+In conclusion, rare events are hard to predict but valuable. However, it needs more effort to deal with the problem.
