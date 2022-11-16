@@ -144,7 +144,7 @@ allTracts <- rbind(tracts09,tracts20)
 
 ```{r  bartStops, message = FALSE, warning = FALSE, results='hide'}
 bartStops <- 
-  st_read("/Users/rui/Documents/GitHub/MUSA_508/BART_Station/BART_Station_0.shp") %>%
+  st_read("https://raw.githubusercontent.com/RumRon/HW_UP_IP/main/R/BART_Station.geojson") %>%
     dplyr::select(Name, City) %>%
     filter(City=="San Francisco") %>%
   st_transform("EPSG:2229")
