@@ -104,22 +104,31 @@ tidycensus::census_api_key("2f748668ad5407296cc1ffdff1a4ab3b2aa98a84", overwrite
 ## 2.2. Import Data
 
 Let's read in the month of May, 2018 using `read.socrata` and a SQL query. The weather in Chicago is notoriously awful for much of the year, but May has a fairly pleasant temperature range, so we may see some leisure trips as well as commutes. It contains one major holiday weekend, Memorial Day.
+"https://kiosks.bicycletransit.workers.dev/phl
 
 **Take a closer look at the `read.socrata` call and see where there are dates and times in the SQL code.**
 
 ```{r read_dat }
-dat <- read.socrata("https://kiosks.bicycletransit.workers.dev/phl")
+dat <- read.csv("https://raw.githubusercontent.com/RumRon/HW_UP_IP/main/R/data4HW5/4.25-5.29.csv")
+dat <- dat %>%
+  rename(., from_longitude = start_lon) %>%
+  rename(., from_latitude = start_lat)%>%
+  rename(., to_latitude = end_lat ) %>%
+  rename(., to_longitude = end_lon) %>%
+  reanme(., from_station_name = start_station)
 ```
 
 We can take a look at our data to see the format and names of all of our columns using the `glimpse` command.
 
 ```{r glimpse_dat, echo=FALSE, eval= FALSE }
 glimpse(dat)
+dat$start_time <- strptime(dat$start_time, format = "%m/%d/%Y %H:%M")
+dat$end_time <- strptime(dat$end_time, format = "%m/%d/%Y %H:%M")
 ```
 
 Let's use some date parsing to bin" the data by 15 and 60 minute intervals by rounding. 
 
-Notice we use the time format `ymd_hms` to denote year, month, day and hour, minute and seccond. We extract the `week` of the observation (ranging from 1-52 throughout the year) and the `dotw` for day of the week.
+Notice we use the time format `ymd_hms` to denote year, month, day and hour, minute and second. We extract the `week` of the observation (ranging from 1-52 throughout the year) and the `dotw` for day of the week.
 
 ```{r time_bins }
 dat2 <- dat %>%
@@ -145,10 +154,10 @@ chicagoCensus <-
                         "B02001_002", "B08013_001",
                         "B08012_001", "B08301_001", 
                         "B08301_010", "B01002_001"), 
-          year = 2017, 
-          state = "IL", 
+          year = 2020, 
+          state = "PA", 
           geometry = TRUE, 
-          county=c("Cook"),
+          county=c("Philadelphia"),
           output = "wide") %>%
   rename(Total_Pop =  B01003_001E,
          Med_Inc = B19013_001E,
@@ -183,9 +192,9 @@ dat_census <- st_join(dat2 %>%
                    is.na(from_latitude) == FALSE &
                    is.na(to_latitude) == FALSE &
                    is.na(to_longitude) == FALSE) %>%
-          st_as_sf(., coords = c("from_longitude", "from_latitude"), crs = 4326),
+          st_as_sf(., coords = c("from_longitude", "from_latitude"), crs = 2272),
         chicagoTracts %>%
-          st_transform(crs=4326),
+          st_transform(crs=2272),
         join=st_intersects,
               left = TRUE) %>%
   rename(Origin.Tract = GEOID) %>%
@@ -193,9 +202,9 @@ dat_census <- st_join(dat2 %>%
          from_latitude = unlist(map(geometry, 2)))%>%
   as.data.frame() %>%
   select(-geometry)%>%
-  st_as_sf(., coords = c("to_longitude", "to_latitude"), crs = 4326) %>%
+  st_as_sf(., coords = c("to_longitude", "to_latitude"), crs = 2272) %>%
   st_join(., chicagoTracts %>%
-            st_transform(crs=4326),
+            st_transform(crs=2272),
           join=st_intersects,
           left = TRUE) %>%
   rename(Destination.Tract = GEOID)  %>%
@@ -213,7 +222,7 @@ These data can also be categorized as a part of an exploration of the relationsh
 
 ```{r import_weather, message = FALSE, warning = FALSE }
 weather.Panel <- 
-  riem_measures(station = "ORD", date_start = "2018-05-01", date_end = "2018-05-31") %>%
+  riem_measures(station = "PHL", date_start = "2022-04-25", date_end = "2022-05-09") %>%
   dplyr::select(valid, tmpf, p01i, sknt)%>%
   replace(is.na(.), 0) %>%
     mutate(interval60 = ymd_h(substr(valid,1,13))) %>%
@@ -236,7 +245,7 @@ grid.arrange(
     labs(title="Wind Speed", x="Hour", y="Wind Speed") + plotTheme,
   ggplot(weather.Panel, aes(interval60,Temperature)) + geom_line() + 
     labs(title="Temperature", x="Hour", y="Temperature") + plotTheme,
-  top="Weather Data - Chicago ORD - May, 2018")
+  top="Weather Data - Philadelphia PHL - May, 2022")
 ```
 
 ## 3.1. Describe and Explore the Data
@@ -250,7 +259,7 @@ ggplot(dat_census %>%
          group_by(interval60) %>%
          tally())+
   geom_line(aes(x = interval60, y = n))+
-  labs(title="Bike share trips per hr. Chicago, May, 2018",
+  labs(title="Bike share trips per hr. Philadelphia, May, 2022",
        x="Date", 
        y="Number of trips")+
   plotTheme
@@ -274,7 +283,7 @@ dat_census %>%
   summarize(mean_trips = mean(n))%>%
   ggplot()+
   geom_histogram(aes(mean_trips), binwidth = 1)+
-  labs(title="Mean Number of Hourly Trips Per Station. Chicago, May, 2018",
+  labs(title="Mean Number of Hourly Trips Per Station. Phialdelphia, May, 2022",
        x="Number of trips", 
        y="Frequency")+
   facet_wrap(~time_of_day)+
@@ -315,7 +324,7 @@ ggplot(dat_census %>%
 ```{r origin_map }
 ggplot()+
   geom_sf(data = chicagoTracts %>%
-          st_transform(crs=4326))+
+          st_transform(crs=2272))+
   geom_point(data = dat_census %>% 
             mutate(hour = hour(start_time),
                 weekend = ifelse(dotw %in% c("Sun", "Sat"), "Weekend", "Weekday"),
