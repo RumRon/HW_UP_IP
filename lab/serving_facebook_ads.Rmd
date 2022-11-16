@@ -186,7 +186,8 @@ summary(advertisingModel)
 
 ```
 
-> AIC could be comparable use some dataseta and features, smaller number the better 
+> AIC could be comparable use some dataseta and features, smaller number the better  <br />
+Akaike information criterion
 
 ## Discussion 3
 
@@ -262,11 +263,11 @@ caret::confusionMatrix(testProbs$predOutcome, testProbs$Outcome,
 
 **True Positive:** We predicted a click and it was a click IRL
 
-**False Positive:**
+**False Positive:** We predicted a click and it wasn't a click IRL
 
-**True Negative:**
+**True Negative:** We predicted no click and it wasn't a click IRL
 
-**False Negative:**
+**False Negative:** We predicted no click and it was a click IRL
 
 # ROC Curve
 
