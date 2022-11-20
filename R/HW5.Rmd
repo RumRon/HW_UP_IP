@@ -1,7 +1,7 @@
 ---
-title: "Lab and Homework: Space-Time Prediction of Bike Share Demand (MUSA 508, Fall, 2020)"
-author: "Instructor: Michael Fichman"
-date: "November 3, 2020"
+title: "Space-Time Prediction of Bike Share Demand - HW5 (MUSA 508, Fall, 2022)"
+author: "Student: Rui Jiang; Instructor: Michael Fichman"
+date: "November 16, 2022"
 output: 
   html_document:
     toc: true
@@ -157,7 +157,7 @@ Using the `tidycensus` package, we can download census geography and variables. 
 We add the spatial information to our rideshare data as origin and destination data, first joining the origin station, then the destination station to our census data. We don't use the destination data in this exercise, but it may come in handy if you want to try to understand the dynamics of your data in exploratory analysis.
 
 ```{r get_census, message=FALSE, warning=FALSE, cache=TRUE, results = 'hide'}
-chicagoCensus <- 
+phillyCensus <- 
   get_acs(geography = "tract", 
           variables = c("B01003_001", "B19013_001", 
                         "B02001_002", "B08013_001",
@@ -186,8 +186,8 @@ chicagoCensus <-
 ```
 
 ```{r extract_geometries }
-chicagoTracts <- 
-  chicagoCensus %>%
+phillyTracts <- 
+  phillyCensus %>%
   as.data.frame() %>%
   distinct(GEOID, .keep_all = TRUE) %>%
   select(GEOID, geometry) %>% 
@@ -203,7 +203,7 @@ dat_census <- st_join(dat2 %>%
                    is.na(to_latitude) == FALSE &
                    is.na(to_longitude) == FALSE) %>%
           st_as_sf(., coords = c("from_longitude", "from_latitude"), crs = 4326),
-        chicagoTracts %>%
+        phillyTracts %>%
           st_transform(crs=4326),
         join=st_intersects,
               left = TRUE) %>%
@@ -213,7 +213,7 @@ dat_census <- st_join(dat2 %>%
   as.data.frame() %>%
   select(-geometry)%>%
   st_as_sf(., coords = c("to_longitude", "to_latitude"), crs = 4326) %>%
-  st_join(., chicagoTracts %>%
+  st_join(., phillyTracts %>%
             st_transform(crs=4326),
           join=st_intersects,
           left = TRUE) %>%
@@ -335,7 +335,7 @@ ggplot(dat_census %>%
 
 ```{r origin_map }
 ggplot()+
-  geom_sf(data = chicagoTracts %>%
+  geom_sf(data = phillyTracts %>%
           st_transform(crs=4326))+
   geom_point(data = dat_census %>% 
             mutate(hour = hour(start_time),
@@ -406,7 +406,7 @@ ride.panel <-
 
 ```{r census_and_panel , message = FALSE}
 ride.panel <- 
-  left_join(ride.panel, chicagoCensus %>%
+  left_join(ride.panel, phillyCensus %>%
               as.data.frame() %>%
               select(-geometry), by = c("Origin.Tract" = "GEOID"))
 ```
@@ -548,13 +548,9 @@ week_predictions <-
 week_predictions
 ```
 
-## 5.1. Examine Error Metrics for Accuracy
+## 5.1. Accuracy
 
-The best models - the lag models, are accurate to less than an average of one ride per hour, at a glance, that's pretty alright for overall accuracy.
 
-**Which models perform best - and how would you describe their fit?**
-
-**Why don't the holiday time lags seem to matter?**
 
 ```{r plot_errors_by_model }
 week_predictions %>%
@@ -579,7 +575,7 @@ week_predictions %>%
     ggplot(aes(interval60, Value, colour=Variable)) + 
       geom_line(size = 1.1) + 
       facet_wrap(~Regression, ncol=1) +
-      labs(title = "Predicted/Observed bike share time series", subtitle = "Chicago; A test set of 2 weeks",  x = "Hour", y= "Station Trips") +
+      labs(title = "Predicted/Observed bike share time series", subtitle = "Philadelphia; A test set of 2 weeks",  x = "Hour", y= "Station Trips") +
       plotTheme
 ```
 
@@ -599,7 +595,7 @@ week_predictions %>%
   group_by(from_station_id, from_longitude, from_latitude) %>%
   summarize(MAE = mean(abs(Observed-Prediction), na.rm = TRUE))%>%
 ggplot(.)+
-  geom_sf(data = chicagoCensus, color = "grey", fill = "transparent")+
+  geom_sf(data = phillyCensus, color = "grey", fill = "transparent")+
   geom_point(aes(x = from_longitude, y = from_latitude, color = MAE), 
              fill = "transparent", alpha = 0.4)+
   scale_colour_viridis(direction = -1,
@@ -668,7 +664,7 @@ week_predictions %>%
   group_by(from_station_id, weekend, time_of_day, from_longitude, from_latitude) %>%
   summarize(MAE = mean(abs(Observed-Prediction), na.rm = TRUE))%>%
   ggplot(.)+
-  geom_sf(data = chicagoCensus, color = "grey", fill = "transparent")+
+  geom_sf(data = phillyCensus, color = "grey", fill = "transparent")+
   geom_point(aes(x = from_longitude, y = from_latitude, color = MAE), 
              fill = "transparent", size = 0.5, alpha = 0.4)+
   scale_colour_viridis(direction = -1,
@@ -710,7 +706,7 @@ week_predictions %>%
   summarize(MAE = mean(abs(Observed-Prediction), na.rm = TRUE))%>%
   gather(-from_station_id, -MAE, key = "variable", value = "value")%>%
   ggplot(.)+
-  #geom_sf(data = chicagoCensus, color = "grey", fill = "transparent")+
+  #geom_sf(data = phillyCensus, color = "grey", fill = "transparent")+
   geom_point(aes(x = value, y = MAE), alpha = 0.4)+
   geom_smooth(aes(x = value, y = MAE), method = "lm", se= FALSE)+
   facet_wrap(~variable, scales = "free")+
