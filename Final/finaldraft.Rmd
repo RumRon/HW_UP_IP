@@ -35,41 +35,13 @@ library(kableExtra)
 library(tidycensus)
 library(classInt)   # for KDE and ML risk class intervals
 library(mapview)
+library(stringr)
 # functions
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
 
 ```
 
-
-```{r read_Chicago_data, results="hide", message =FALSE}
-policeDistricts <- 
-  st_read("https://data.cityofchicago.org/api/geospatial/fthy-xz3r?method=export&format=GeoJSON") %>%
-  st_transform('EPSG:2223') %>%
-  dplyr::select(District = dist_num)
-  
-policeBeats <- 
-  st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
-  st_transform('EPSG:2223') %>%
-  dplyr::select(District = beat_num)
-
-bothPoliceUnits <- rbind(mutate(policeDistricts, Legend = "Police Districts"), 
-                         mutate(policeBeats, Legend = "Police Beats"))
-
-crimes <-  # general name can be used for other primary type later
-  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2020/qzdf-xmn8") %>%  #change some filtering 
-    filter(Primary.Type == "NARCOTICS") %>%
-    mutate(x = gsub("[()]", "", Location)) %>%
-    separate(x,into= c("Y","X"), sep=",") %>%
-    mutate(X = as.numeric(X),Y = as.numeric(Y)) %>% 
-    na.omit() %>%
-    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant")%>%
-    st_transform('EPSG:2223') %>% 
-    distinct()
-#socrata data download platform
-
-
-```
 
 ```{r}
 mesaBoundary <- 
@@ -79,7 +51,8 @@ mesaBoundary <-
 
 
 ```{r crime_data}
-crime <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson")
+crime <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson")%>%
+  str_extract_all(test_vector,"3")
 ```
 
 
@@ -106,6 +79,7 @@ ggplot() +
   scale_alpha(range = c(0.00, 0.35), guide = FALSE) +
   labs(title = "Density of Crimes") +
   mapTheme(title_size = 14) + theme(legend.position = "none"))
+
 ```
 After creating a fishnet...
 
