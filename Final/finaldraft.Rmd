@@ -1,7 +1,7 @@
 ---
-title: 'HW #3 Predictive Policing'
-author: "Rui Jiang"
-date: "10/19/2022"
+title: 'MUSA508 Final - Predict heroin overdose events to better allocate prevention resources'
+author: "Jingyi Cai & Rui Jiang"
+date: "12/5/2022"
 output: 
   html_document:
     toc: true
@@ -10,6 +10,12 @@ output:
 ---
 
 This project is to build a  model for nacrcotics that suffers from selection bias. This model is for Chicago. Two new risk factors: envrionment complaints and shot spotter alerts are added to the model.
+
+
+city_b: city boundary
+unsheltered_point:Unsheltered Point in Time (PIT) Count Phoenix Metro Area
+operation_homeless: Operation_Off-the-Streets__Homeless_
+graffiti: Transportation Graffiti.geojson
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,  message = FALSE, warning = FALSE)
