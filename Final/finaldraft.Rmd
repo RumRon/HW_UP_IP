@@ -67,19 +67,16 @@ crimes <-  # general name can be used for other primary type later
     st_transform('EPSG:2223') %>% 
     distinct()
 #socrata data download platform
-<<<<<<< HEAD
 
-=======
-chicagoBoundary <- 
-  st_read(file.path(root.dir,"/Chapter5/chicagoBoundary.geojson")) %>%
-  st_transform('EPSG:2223') 
->>>>>>> 19191d4b6f4ed1e61ae1fb7d1b1d91dfefd2eed2
+
 ```
-```{r read_boundary}
+
+```{r}
 mesaBoundary <- 
   st_read('https://data.mesaaz.gov/resource/qwhq-nske.geojson') %>%
   st_transform('EPSG:2223') 
 ```
+
 
 ```{r crime_data}
 crime <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson")
