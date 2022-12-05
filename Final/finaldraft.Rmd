@@ -45,12 +45,12 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 ```{r read_Chicago_data, results="hide", message =FALSE}
 policeDistricts <- 
   st_read("https://data.cityofchicago.org/api/geospatial/fthy-xz3r?method=export&format=GeoJSON") %>%
-  st_transform('ESRI:102271') %>%
+  st_transform('EPSG:2223') %>%
   dplyr::select(District = dist_num)
   
 policeBeats <- 
   st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
-  st_transform('ESRI:102271') %>%
+  st_transform('EPSG:2223') %>%
   dplyr::select(District = beat_num)
 
 bothPoliceUnits <- rbind(mutate(policeDistricts, Legend = "Police Districts"), 
@@ -64,10 +64,16 @@ crimes <-  # general name can be used for other primary type later
     mutate(X = as.numeric(X),Y = as.numeric(Y)) %>% 
     na.omit() %>%
     st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant")%>%
-    st_transform('ESRI:102271') %>% 
+    st_transform('EPSG:2223') %>% 
     distinct()
 #socrata data download platform
+<<<<<<< HEAD
 
+=======
+chicagoBoundary <- 
+  st_read(file.path(root.dir,"/Chapter5/chicagoBoundary.geojson")) %>%
+  st_transform('EPSG:2223') 
+>>>>>>> 19191d4b6f4ed1e61ae1fb7d1b1d91dfefd2eed2
 ```
 ```{r read_boundary}
 mesaBoundary <- 
@@ -613,7 +619,7 @@ crimes18 <-
          Y = as.numeric(Y)) %>% 
   na.omit %>%
   st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
-  st_transform('ESRI:102271') %>% 
+  st_transform('EPSG:2223') %>% 
   distinct() %>%
   .[fishnet,]
 ```
