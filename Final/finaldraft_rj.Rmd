@@ -114,7 +114,7 @@ After creating a fishnet...
 ## Note the `.[mesaBoundary] %>% ` line. This is needed to clip the grid to our data
 fishnet <- 
   st_make_grid(mesaBoundary,
-               cellsize = 10,  # in meters 10
+               cellsize = 0.005,  # in meters 10
                square = TRUE) %>%
   .[mesaBoundary] %>%            # fast way to select intersecting polygons
   st_sf() %>%
@@ -149,14 +149,15 @@ Then downloading all Modeling Spatial Features...
 ```{r , results='hide'}
 ## only pulling a single variable for our model to keep it simple
 ## using Socrata again
-abandonCars <- 
-  read.socrata("https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Abandoned-Vehicles/3c9v-pnva") %>%
-    mutate(year = substr(creation_date,1,4)) %>% filter(year == "2017") %>%
-    dplyr::select(Y = latitude, X = longitude) %>%
+trans_graffiti <- 
+  read.socrata("https://data.mesaaz.gov/Transportation/Transportation-Graffiti/9spb-749m")
+trans_graffiti <- trans_graffiti %>%
+    mutate(year = year_reported) %>% filter(year == 2018) %>%
+    dplyr::select(Y = lat, X = lon) %>%
     na.omit() %>%
     st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
     st_transform(st_crs(fishnet)) %>%
-    mutate(Legend = "Abandoned_Cars")
+    mutate(Legend = "graffiti")
 
 abandonBuildings <- 
   read.socrata("https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Vacant-and-Abandoned-Building/7nii-7srd") %>%
