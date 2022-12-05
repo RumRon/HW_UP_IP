@@ -82,13 +82,20 @@ ggplot() +
 
 ```
 After creating a fishnet...
+```{r}
+fishnet <- 
+  st_make_grid(chicagoBoundary, cellsize = 50) %>%
+  st_sf() %>%
+  mutate(uniqueID = rownames(.))
+```
+
 
 ```{r}
 ## using {sf} to create the grid
 ## Note the `.[chicagoBoundary] %>% ` line. This is needed to clip the grid to our data
 fishnet <- 
   st_make_grid(chicagoBoundary,
-               cellsize = 500,  # in meters 10
+               cellsize = 0.0050,  # in meters 10
                square = TRUE) %>%
   .[chicagoBoundary] %>%            # fast way to select intersecting polygons
   st_sf() %>%
@@ -123,14 +130,18 @@ Then downloading all Modeling Spatial Features...
 ```{r , results='hide'}
 ## only pulling a single variable for our model to keep it simple
 ## using Socrata again
-abandonCars <- 
-  read.socrata("https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Abandoned-Vehicles/3c9v-pnva") %>%
-    mutate(year = substr(creation_date,1,4)) %>% filter(year == "2017") %>%
+unSheltered <- 
+  read.socrata("https://data.mesaaz.gov/Community-Services/Unsheltered-Point-in-Time-PIT-Count-Phoenix-Metro-/jagk-fkkw")
+
+unSheltered <- unSheltered %>%
+    filter(reporting_year == "2018") %>%
     dplyr::select(Y = latitude, X = longitude) %>%
     na.omit() %>%
     st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
     st_transform(st_crs(fishnet)) %>%
-    mutate(Legend = "Abandoned_Cars")
+    mutate(Legend = "unSheltered")
+
+
 
 abandonBuildings <- 
   read.socrata("https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Vacant-and-Abandoned-Building/7nii-7srd") %>%
