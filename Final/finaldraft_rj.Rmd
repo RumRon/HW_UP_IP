@@ -72,7 +72,7 @@ crimes <-  # general name can be used for other primary type later
 ```
 
 ```{r}
-chicagoBoundary <- 
+mesaBoundary <- 
   st_read('https://data.mesaaz.gov/resource/qwhq-nske.geojson') #%>%
   #st_transform('EPSG:2223') 
 ```
@@ -92,31 +92,31 @@ It is argued that these racial disparities in drug sanctioning are better explai
 # uses grid.arrange to organize independent plots
 grid.arrange(ncol=2,
 ggplot() + 
-  geom_sf(data = chicagoBoundary) +
+  geom_sf(data = mesaBoundary) +
   geom_sf(data = crimes, colour="red", size=0.1, show.legend = "point") +
-  labs(title= "Narcotics Crimes, Chicago - 2017") +
+  labs(title= "Opioid Overdose, Mesa - 2017") +
   mapTheme(title_size = 14),
 
 ggplot() + 
-  geom_sf(data = chicagoBoundary, fill = "grey40") +
+  geom_sf(data = mesaBoundary, fill = "grey80") +
   stat_density2d(data = data.frame(st_coordinates(crimes)), 
                  aes(X, Y, fill = ..level.., alpha = ..level..),
                  size = 0.01, bins = 40, geom = 'polygon') +
   scale_fill_viridis() +
   scale_alpha(range = c(0.00, 0.35), guide = FALSE) +
-  labs(title = "Density of Crimes") +
+  labs(title = "Density of Opioid Overdose") +
   mapTheme(title_size = 14) + theme(legend.position = "none"))
 ```
 After creating a fishnet...
 
 ```{r}
 ## using {sf} to create the grid
-## Note the `.[chicagoBoundary] %>% ` line. This is needed to clip the grid to our data
+## Note the `.[mesaBoundary] %>% ` line. This is needed to clip the grid to our data
 fishnet <- 
-  st_make_grid(chicagoBoundary,
-               cellsize = 500,  # in meters 10
+  st_make_grid(mesaBoundary,
+               cellsize = 10,  # in meters 10
                square = TRUE) %>%
-  .[chicagoBoundary] %>%            # fast way to select intersecting polygons
+  .[mesaBoundary] %>%            # fast way to select intersecting polygons
   st_sf() %>%
   mutate(uniqueID = 1:n())
 
