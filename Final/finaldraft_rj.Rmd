@@ -72,14 +72,14 @@ crimes <-  # general name can be used for other primary type later
 ```
 
 ```{r}
-mesaBoundary <- 
-  st_read('https://data.mesaaz.gov/resource/qwhq-nske.geojson') %>%
-  st_transform('EPSG:2223') 
+chicagoBoundary <- 
+  st_read('https://data.mesaaz.gov/resource/qwhq-nske.geojson') #%>%
+  #st_transform('EPSG:2223') 
 ```
 
 
 ```{r crime_data}
-crime <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson")
+crimes <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson")
 ```
 
 
