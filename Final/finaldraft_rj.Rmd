@@ -228,9 +228,9 @@ st_coid <- st_centroid
 ## create NN from abandoned cars
 vars_net <- vars_net %>%
     mutate(
-      unSheltered.fe =
+      UnSheltered.nn =
         nn_function(st_c(st_coid(vars_net)), st_c(unSheltered),k=3),
-      trans_graffiti.fe =
+      Trans_graffiti.nn =
         nn_function(st_c(st_coid(vars_net)), st_c(trans_graffiti),k=3))
      
 
