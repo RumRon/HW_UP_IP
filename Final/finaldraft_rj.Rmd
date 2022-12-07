@@ -173,8 +173,8 @@ unSheltered <- unSheltered %>%
 
 ## Neighborhoods to use in LOOCV in a bit
 neighborhoods <- 
-  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa_Neighborhoods_HOAs.geojson") %>%
-  #https://data.mesaaz.gov/resource/4scp-vfkf.geojson
+  st_read("https://data.mesaaz.gov/resource/4scp-vfkf.geojson") %>%
+  #https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa_Neighborhoods_HOAs.geojson
   st_transform(st_crs(fishnet)) 
 
 ```
@@ -274,7 +274,7 @@ Join in areal data...
 
 final_net <-
   st_centroid(final_net) %>%
-    st_join(dplyr::select(neighborhoods, CouncilDistrict)) %>%  # if touch, add name
+    st_join(dplyr::select(neighborhoods, district)) %>%  # if touch, add name
     #st_join(dplyr::select(policeDistricts, District), by = "uniqueID") %>%
       st_drop_geometry() %>%
       left_join(dplyr::select(final_net, geometry, uniqueID)) %>%
@@ -282,7 +282,7 @@ final_net <-
   na.omit()
 
 # for live demo
- mapview::mapview(final_net, zcol = "CouncilDistrict")
+ mapview::mapview(final_net, zcol = "district")
 ```
 
 
