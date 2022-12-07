@@ -376,10 +376,10 @@ reg.ss.vars <- c("Un_Sheltered.nn","Trans_graffiti.nn","crime.isSig.dist")
 ## RUN REGRESSIONS
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "name",                           
+  id = "district",                           
   dependentVariable = "countCrimes",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = name, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = district, countCrimes, Prediction, geometry)
 ```
 ## Table of MAE and standard deviation MAE by regression.
 
@@ -437,7 +437,7 @@ as.data.frame(crime_KD.1000) %>%
   aggregate(., final_net, mean) %>%
    ggplot() +
      geom_sf(aes(fill=value)) +
-     geom_sf(data = sample_n(crimes, 1500), size = .5) +
+     geom_sf(data = sample_n(crimes, 1000), size = .5) +
      scale_fill_viridis(name = "Density") +
      labs(title = "Kernel density of 2017 crimes") +
      mapTheme(title_size = 14)
@@ -446,7 +446,7 @@ as.data.frame(crime_KD.1000) %>%
 ```{r}
 correlation.long <-
   st_drop_geometry(final_net) %>%
-    dplyr::select(-uniqueID, -cvID, -name, -District) %>%
+    dplyr::select(-uniqueID, -cvID, -district, -district.x, -district.y, -districts) %>%
     gather(Variable, Value, -countCrimes)
 
 correlation.cor <-
@@ -464,11 +464,9 @@ ggplot(correlation.long, aes(Value, countCrimes)) +
   plotTheme()
 ```
 ```{r  results="hide", message = FALSE, warning=FALSE}
-reg.vars <- c("Abandoned_Buildings.fe", "Abandoned_Cars.fe","shotspotter_alert.fe",
-                 "env_complaints.fe","crime.isSig", "crime.isSig.dist")
+reg.vars <- c("Un_Sheltered.nn","Trans_graffiti.nn","crime.isSig", "crime.isSig.dist")
 
-reg.ss.vars <- c("Abandoned_Buildings.fe", "Abandoned_Cars.fe","shotspotter_alert.fe",
-                 "env_complaints.fe","crime.isSig", "crime.isSig.dist")
+reg.ss.vars <- c("Un_Sheltered.nn","Trans_graffiti.nn","crime.isSig", "crime.isSig.dist")
 
 reg.cv <- crossValidate(
   dataset = final_net,
@@ -486,17 +484,17 @@ reg.ss.cv <- crossValidate(
   
 reg.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "name",
+  id = "district",
   dependentVariable = "countCrimes",
   indVariables = reg.vars) %>%
-    dplyr::select(cvID = name, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = district, countCrimes, Prediction, geometry)
 
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "name",
+  id = "district",
   dependentVariable = "countCrimes",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = name, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = district, countCrimes, Prediction, geometry)
 ```
 
 ```{r   message = FALSE, warning=FALSE}
