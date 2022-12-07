@@ -159,33 +159,15 @@ trans_graffiti <- trans_graffiti %>%
     st_transform(st_crs(fishnet)) %>%
     mutate(Legend = "graffiti")
 
-abandonBuildings <- 
-  read.socrata("https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Vacant-and-Abandoned-Building/7nii-7srd") %>%
-    mutate(year = substr(date_service_request_was_received,1,4)) %>%  filter(year == "2017") %>%
+unSheltered <- 
+  read.socrata("https://data.mesaaz.gov/Community-Services/Unsheltered-Point-in-Time-PIT-Count-Phoenix-Metro-/jagk-fkkw")
+unSheltered <- unSheltered %>%
+    filter(reporting_year == "2018") %>%
     dplyr::select(Y = latitude, X = longitude) %>%
     na.omit() %>%
     st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
     st_transform(st_crs(fishnet)) %>%
-    mutate(Legend = "Abandoned_Buildings")
-
-
-shotspotterAlerts <- 
-  read.socrata("https://data.cityofchicago.org/Public-Safety/Violence-Reduction-Shotspotter-Alerts/3h7q-7mdb") %>%
-    mutate(year = substr(date,1,4)) %>% filter(year == "2017") %>%
-    dplyr::select(Y = latitude, X = longitude) %>%
-    na.omit() %>%
-    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
-    st_transform(st_crs(fishnet)) %>%
-    mutate(Legend = "Shotspotter_Alerts")
-
-envcomplaint <- 
-  read.socrata("https://data.cityofchicago.org/Environment-Sustainable-Development/CDPH-Environmental-Complaints/fypr-ksnz") %>%
-    mutate(year = substr(complaint_date,1,4)) %>% filter(year == "2017") %>%
-    dplyr::select(Y = latitude, X = longitude) %>%
-    na.omit() %>%
-    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
-    st_transform(st_crs(fishnet)) %>%
-    mutate(Legend = "Environment_Complaints")
+    mutate(Legend = "unSheltered")
 
 
 
@@ -201,8 +183,7 @@ and aggregate features to our fishnet...
 ```{r}
 
 vars_net <- 
-  rbind(abandonCars,abandonBuildings,
-        envcomplaint, shotspotterAlerts) %>%
+  rbind(trans_graffiti,unSheltered) %>%
   st_join(fishnet, join=st_within) %>%
   st_drop_geometry() %>%
   group_by(uniqueID, Legend) %>%
@@ -247,14 +228,10 @@ st_coid <- st_centroid
 ## create NN from abandoned cars
 vars_net <- vars_net %>%
     mutate(
-      Abandoned_Buildings.fe =
-        nn_function(st_c(st_coid(vars_net)), st_c(abandonBuildings),k=3),
-      Abandoned_Cars.fe =
-        nn_function(st_c(st_coid(vars_net)), st_c(abandonCars),k=3),
-      shotspotter_alert.fe =
-        nn_function(st_c(st_coid(vars_net)), st_c(shotspotterAlerts),k=3),
-      env_complaints.fe =
-        nn_function(st_c(st_coid(vars_net)), st_c(envcomplaint),k=3))
+      unSheltered.fe =
+        nn_function(st_c(st_coid(vars_net)), st_c(unSheltered),k=3),
+      trans_graffiti.fe =
+        nn_function(st_c(st_coid(vars_net)), st_c(trans_graffiti),k=3))
      
 
 ```
