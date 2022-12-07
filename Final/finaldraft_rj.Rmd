@@ -42,11 +42,11 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 ```
 
 
-```{r read_Chicago_data, results="hide", message =FALSE}
+```{r read_mesa_data, results="hide", message =FALSE}
 policeDistricts <- 
-  st_read("https://data.cityofchicago.org/api/geospatial/fthy-xz3r?method=export&format=GeoJSON") %>%
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa_Neighborhoods_HOAs.geojson") %>%
   st_transform('EPSG:2223') %>%
-  dplyr::select(District = dist_num)
+  dplyr::select(District = PoliceDistrict)
   
 policeBeats <- 
   st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
@@ -173,7 +173,7 @@ unSheltered <- unSheltered %>%
 
 ## Neighborhoods to use in LOOCV in a bit
 neighborhoods <- 
-  st_read("https://raw.githubusercontent.com/blackmad/neighborhoods/master/chicago.geojson") %>%
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa_Neighborhoods_HOAs.geojson") %>%
   st_transform(st_crs(fishnet)) 
 
 ```
@@ -273,8 +273,8 @@ Join in areal data...
 
 final_net <-
   st_centroid(final_net) %>%
-    st_join(dplyr::select(neighborhoods, name), by = "uniqueID") %>%  # if touch, add name
-    st_join(dplyr::select(policeDistricts, District), by = "uniqueID") %>%
+    st_join(dplyr::select(neighborhoods, NeighborhoodName), by = "uniqueID") %>%  # if touch, add name
+    #st_join(dplyr::select(policeDistricts, District), by = "uniqueID") %>%
       st_drop_geometry() %>%
       left_join(dplyr::select(final_net, geometry, uniqueID)) %>%
       st_sf() %>%
