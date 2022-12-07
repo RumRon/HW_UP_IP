@@ -224,14 +224,17 @@ add Nearest Neighbor Feature...
 
 st_c    <- st_coordinates
 st_coid <- st_centroid
+test1<-st_c(st_coid(vars_net))
+test2<- st_c(unSheltered)
+test3<-st_c(trans_graffiti)
 
 ## create NN from abandoned cars
 vars_net <- vars_net %>%
     mutate(
-      UnSheltered.nn =
-        nn_function(st_c(st_coid(vars_net)), st_c(unSheltered),k=3),
+      Un_Sheltered.nn =
+        nn_function(test1, test2,k=3),
       Trans_graffiti.nn =
-        nn_function(st_c(st_coid(vars_net)), st_c(trans_graffiti),k=3))
+        nn_function(test1, test3,k=3))
      
 
 ```
