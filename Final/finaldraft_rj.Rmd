@@ -243,23 +243,12 @@ vars_net <- vars_net %>%
 
 ```{r}
 ## Visualize the NN feature
-vars_net_textbook <-
-  dplyr::select(vars_net, ends_with("s.fe")) %>%
-    gather(Variable, value, -geometry)
-
-vars_net_add <-
-  dplyr::select(vars_net, ends_with("t.fe")) %>%
+vars_net_nn <-
+  dplyr::select(vars_net, ends_with(".nn")) %>%
     gather(Variable, value, -geometry)
 
 ggplot() +
-      geom_sf(data = vars_net_textbook, aes(fill=value), colour=NA) +
-      scale_fill_viridis(name="NN Distance") +
-      labs(title="Abandoned Car NN Distance") +
-      facet_wrap(~Variable) +
-      mapTheme()
-
-ggplot() +
-      geom_sf(data = vars_net_add, aes(fill=value), colour=NA) +
+      geom_sf(data = vars_net_nn, aes(fill=value), colour=NA) +
       scale_fill_viridis(name="NN Distance") +
       labs(title="Abandoned Car NN Distance") +
       facet_wrap(~Variable) +
