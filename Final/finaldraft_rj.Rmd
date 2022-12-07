@@ -376,10 +376,10 @@ reg.ss.vars <- c("Un_Sheltered.nn","Trans_graffiti.nn","crime.isSig.dist")
 ## RUN REGRESSIONS
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "name",                           
+  id = "district",                           
   dependentVariable = "countCrimes",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = name, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = district, countCrimes, Prediction, geometry)
 ```
 ## Table of MAE and standard deviation MAE by regression.
 
