@@ -273,7 +273,7 @@ Join in areal data...
 
 final_net <-
   st_centroid(final_net) %>%
-    st_join(dplyr::select(neighborhoods, NeighborhoodName), by = "uniqueID") %>%  # if touch, add name
+    st_join(dplyr::select(neighborhoods, PoliceDistrict)) %>%  # if touch, add name
     #st_join(dplyr::select(policeDistricts, District), by = "uniqueID") %>%
       st_drop_geometry() %>%
       left_join(dplyr::select(final_net, geometry, uniqueID)) %>%
@@ -281,7 +281,7 @@ final_net <-
   na.omit()
 
 # for live demo
- mapview::mapview(final_net, zcol = "District")
+ mapview::mapview(final_net, zcol = "PoliceDistrict")
 ```
 
 
