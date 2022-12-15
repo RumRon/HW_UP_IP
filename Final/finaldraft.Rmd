@@ -230,14 +230,61 @@ park <- park %>%
     st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
     st_transform(st_crs(fishnet)) %>%
     mutate(Legend = "park")
+
+rail_station <-
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/LightRailStation.geojson")%>%
+  dplyr::select(geometry)%>%
+  mutate(Legend = "light_rail")
 ```
+
+
+```{r ACS}
+acs_variable_list.20 <- load_variables(2020, #year
+                                         "acs5", #five year ACS estimates
+                                         cache = TRUE)
+tracts20 <- 
+  get_acs(geography = "tract", variables = c("B25026_001E","B02001_002E","B15001_050E",
+                                             "B15001_009E","B19013_001E","B25058_001E",
+                                             "B06012_002E","B28010_007E","B08101_001E",
+                                             "B09001_001E","B09001_003E","B09021_002E",
+                                             "B11001I_001E", "B14001_009E",
+                                             "B17001_002E","B27001_001E","B18101_001E",
+                                             "B19001_001E","B25001_001E","B25040_001E"), 
+          year=2020, state= "AZ", county= "Maricopa", geometry=T, output="wide") %>%
+  st_transform('EPSG: 4326') %>%
+  rename(TotalPop = B25026_001E, 
+         Whites = B02001_002E,
+         FemaleBachelors = B15001_050E, 
+         MaleBachelors = B15001_009E,
+         MedHHInc = B19013_001E, 
+         MedRent = B25058_001E,
+         TotalPoverty = B06012_002E,
+         Nocom = B28010_007E, 
+         Waytowork = B08101_001E,
+         Popunder18 = B09001_001E, 
+         Popunder3 = B09001_003E,
+         Singleadult = B09021_002E, 
+         Householdtype = B11001I_001E,
+         Addmittogra = B14001_009E,
+         Poverty  = B17001_002E,
+         Healthins  = B27001_001E,
+         Disable  = B18101_001E,
+         Familyincome  = B19001_001E,
+         Housingunits  = B25001_001E,
+         Househeatingfuel  = B25040_001E)%>%
+  mutate(pctWhite = ifelse(TotalPop > 0, Whites / TotalPop,0),
+         pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop),0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
+         year = "2020") 
+```
+
 
 
 
 ```{r}
 
 vars_net <- 
-  rbind(trans_graffiti,unSheltered,police_incidence, code_violation, park, pol_dispatch, light) %>%
+  rbind(trans_graffiti,unSheltered,police_incidence, code_violation, park, pol_dispatch, light,rail_station) %>%
   st_join(fishnet, join=st_within) %>%
   st_drop_geometry() %>%
   group_by(uniqueID, Legend) %>%
@@ -282,10 +329,10 @@ test1<-st_c(st_coid(vars_net))
 test2<- st_c(unSheltered)
 test_incidence <-st_c(police_incidence)
 test_code <- st_c(code_violation)
-tect_park <- st_c(park)
+test_park <- st_c(park)
 test_disp <- st_c(pol_dispatch)
 test_light <- st_c(light)
-
+test_station <- st_coid(rail_station)%>% st_c()
 
 ## create NN from abandoned cars
 vars_net <- vars_net %>%
@@ -301,12 +348,11 @@ vars_net <- vars_net %>%
       Code_violation.nn = 
         nn_function(test1, test_code,k=3),
       Park.nn = 
-        nn_function(test1, tect_park,k=3),
+        nn_function(test1, test_park,k=3),
       Light.nn = 
-        nn_function(test1, test_light, k=3))
-      
-    
-
+        nn_function(test1, test_light, k=3),
+      Rail_station.nn = 
+        nn_function(test1, test_station, k =3))
 ```
 
 
@@ -320,7 +366,7 @@ vars_net_nn <-
 ggplot() +
       geom_sf(data = vars_net_nn, aes(fill=value), colour=NA) +
       scale_fill_viridis(name="NN Distance") +
-      labs(title="Abandoned Car NN Distance") +
+      labs(title="Factors for NN Distance") +
       facet_wrap(~Variable) +
       mapTheme()
 
