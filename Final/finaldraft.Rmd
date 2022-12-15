@@ -275,12 +275,17 @@ add Nearest Neighbor Feature...
 
 
 ```{r}
-
+#police_incidence, code_violation, park, pol_dispatch, light)
 st_c    <- st_coordinates
 st_coid <- st_centroid
 test1<-st_c(st_coid(vars_net))
 test2<- st_c(unSheltered)
-test3<-st_c(trans_graffiti)
+test_incidence <-st_c(police_incidence)
+test_code <- st_c(code_violation)
+tect_park <- st_c(park)
+test_disp <- st_c(pol_dispatch)
+test_light <- st_c(light)
+
 
 ## create NN from abandoned cars
 vars_net <- vars_net %>%
@@ -288,8 +293,19 @@ vars_net <- vars_net %>%
       Un_Sheltered.nn =
         nn_function(test1, test2,k=3),
       Trans_graffiti.nn =
-        nn_function(test1, test3,k=3))
-     
+        nn_function(test1, test3,k=3),
+      Plc_incidence.nn = 
+        nn_function(test1, test_incidence,k=3),      
+      Plc_dispatch.nn = 
+        nn_function(test1, test_disp, k=3),
+      Code_violation.nn = 
+        nn_function(test1, test_code,k=3),
+      Park.nn = 
+        nn_function(test1, tect_park,k=3),
+      Light.nn = 
+        nn_function(test1, test_light, k=3))
+      
+    
 
 ```
 
