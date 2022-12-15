@@ -43,10 +43,14 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 
 ```{r read_mesa_data, results="hide", message =FALSE}
-policeDistricts <- 
-  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa_Neighborhoods_HOAs.geojson") %>%
-  st_transform('EPSG:2223') %>%
-  dplyr::select(District = PoliceDistrict)
+
+crimes <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson") %>%
+    filter(year == "2020") 
+
+CouncilDistricts <- 
+  st_read("https://data.mesaaz.gov/resource/4scp-vfkf.geojson") %>%
+  st_transform(st_crs(crimes))%>%
+  dplyr::select(District = district, name = districts)
   
 # policeBeats <- 
 #   st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
@@ -56,32 +60,14 @@ policeDistricts <-
 # bothPoliceUnits <- rbind(mutate(policeDistricts, Legend = "Police Districts"), 
 #                          mutate(policeBeats, Legend = "Police Beats"))
 
-crimes <-  # general name can be used for other primary type later
-  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2020/qzdf-xmn8") %>%  #change some filtering 
-    filter(Primary.Type == "NARCOTICS") %>%
-    mutate(x = gsub("[()]", "", Location)) %>%
-    separate(x,into= c("Y","X"), sep=",") %>%
-    mutate(X = as.numeric(X),Y = as.numeric(Y)) %>% 
-    na.omit() %>%
-    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant")%>%
-    st_transform('EPSG:2223') %>% 
-    distinct()
+
+  
 #socrata data download platform
-
-
-```
-
-```{r}
 mesaBoundary <- 
-  st_read('https://data.mesaaz.gov/resource/qwhq-nske.geojson') #%>%
-  #st_transform('EPSG:2223') 
+  st_read('https://data.mesaaz.gov/resource/qwhq-nske.geojson') %>%
+  st_transform(st_crs(crimes))
+
 ```
-
-
-```{r crime_data}
-crimes <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson")
-```
-
 
 ## A map of the outcome of interest 
 
@@ -173,7 +159,7 @@ unSheltered <- unSheltered %>%
 
 ## Neighborhoods to use in LOOCV in a bit
 neighborhoods <- 
-  st_read("https://data.mesaaz.gov/resource/4scp-vfkf.geojson") %>%
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa_Neighborhoods_HOAs.geojson") %>%
   #https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa_Neighborhoods_HOAs.geojson
   st_transform(st_crs(fishnet)) 
 
@@ -274,15 +260,15 @@ Join in areal data...
 
 final_net <-
   st_centroid(final_net) %>%
-    st_join(dplyr::select(neighborhoods, district)) %>%  # if touch, add name
-    #st_join(dplyr::select(policeDistricts, District), by = "uniqueID") %>%
+    st_join(dplyr::select(neighborhoods, NeighborhoodName)) %>%  # if touch, add name
+    #st_join(dplyr::select(CouncilDistricts, District), by = "uniqueID") %>%
       st_drop_geometry() %>%
       left_join(dplyr::select(final_net, geometry, uniqueID)) %>%
       st_sf() %>%
   na.omit()
 
 # for live demo
- mapview::mapview(final_net, zcol = "district")
+ mapview::mapview(final_net, zcol = "NeighborhoodName")
 ```
 
 
@@ -376,10 +362,10 @@ reg.ss.vars <- c("Un_Sheltered.nn","Trans_graffiti.nn","crime.isSig.dist")
 ## RUN REGRESSIONS
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "district",                           
+  id = "NeighborhoodName",                           
   dependentVariable = "countCrimes",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = district, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = NeighborhoodName, countCrimes, Prediction, geometry)
 ```
 ## Table of MAE and standard deviation MAE by regression.
 
@@ -437,7 +423,7 @@ as.data.frame(crime_KD.1000) %>%
   aggregate(., final_net, mean) %>%
    ggplot() +
      geom_sf(aes(fill=value)) +
-     geom_sf(data = sample_n(crimes, 1000), size = .5) +
+     geom_sf(data = sample_n(crimes, 240), size = .5) +
      scale_fill_viridis(name = "Density") +
      labs(title = "Kernel density of 2017 crimes") +
      mapTheme(title_size = 14)
@@ -446,7 +432,7 @@ as.data.frame(crime_KD.1000) %>%
 ```{r}
 correlation.long <-
   st_drop_geometry(final_net) %>%
-    dplyr::select(-uniqueID, -cvID, -district, -district.x, -district.y, -districts) %>%
+    dplyr::select(-uniqueID, -cvID, -NeighborhoodName) %>%
     gather(Variable, Value, -countCrimes)
 
 correlation.cor <-
@@ -484,17 +470,17 @@ reg.ss.cv <- crossValidate(
   
 reg.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "district",
+  id = "NeighborhoodName",
   dependentVariable = "countCrimes",
   indVariables = reg.vars) %>%
-    dplyr::select(cvID = district, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = NeighborhoodName, countCrimes, Prediction, geometry)
 
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "district",
+  id = "NeighborhoodName",
   dependentVariable = "countCrimes",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = district, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = NeighborhoodName, countCrimes, Prediction, geometry)
 ```
 
 ```{r   message = FALSE, warning=FALSE}
@@ -572,20 +558,13 @@ filter(error_by_reg_and_fold, str_detect(Regression, "LOGO"))  %>%
                                  na.action=na.omit)[[3]])
 ```
 
-Get 2018 crime data...
+Get 2021 crime data...
 
 ```{r}
-crimes18 <- 
-  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2018/3i3m-jwuy") %>% 
-  filter(Primary.Type == "NARCOTICS") %>%
-  mutate(x = gsub("[()]", "", Location)) %>%
-  separate(x,into= c("Y","X"), sep=",") %>%
-  mutate(X = as.numeric(X),
-         Y = as.numeric(Y)) %>% 
-  na.omit %>%
-  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
-  st_transform('EPSG:2223') %>% 
-  distinct() %>%
+crimes21 <- 
+  crimes <- st_read("https://data.mesaaz.gov/resource/qufy-tzv6.geojson") %>%
+  filter(year == "2021") %>%
+  st_transform(st_crs(crimes)) %>%
   .[fishnet,]
 ```
 
@@ -608,7 +587,7 @@ crime_KDE_sf <- crime_KDE_sum %>%
            Risk_Category == 1 ~ "1st")) %>%
   cbind(
     aggregate(
-      dplyr::select(crimes18) %>% mutate(crimeCount = 1), ., sum) %>%
+      dplyr::select(crimes21) %>% mutate(crimeCount = 1), ., sum) %>%
     mutate(crimeCount = replace_na(crimeCount, 0))) %>%
   dplyr::select(label, Risk_Category, crimeCount)
 ```
@@ -631,7 +610,7 @@ crime_risk_sf <-
            Risk_Category == 1 ~ "1st")) %>%
   cbind(
     aggregate(
-      dplyr::select(crimes18) %>% mutate(crimeCount = 1), ., sum) %>%
+      dplyr::select(crimes21) %>% mutate(crimeCount = 1), ., sum) %>%
       mutate(crimeCount = replace_na(crimeCount, 0))) %>%
   dplyr::select(label,Risk_Category, crimeCount)
 ```
@@ -644,11 +623,11 @@ rbind(crime_KDE_sf, crime_risk_sf) %>%
   gather(Variable, Value, -label, -Risk_Category, -geometry) %>%
   ggplot() +
     geom_sf(aes(fill = Risk_Category), colour = NA) +
-    geom_sf(data = sample_n(crimes18, 3000), size = .5, colour = "black") +
+    geom_sf(data = sample_n(crimes21, 276), size = .5, colour = "black") +
     facet_wrap(~label, ) +
     scale_fill_viridis(discrete = TRUE) +
     labs(title="Comparison of Kernel Density and Risk Predictions",
-         subtitle="2017 crime risk predictions; 2018 crimes") +
+         subtitle="2020 crime risk predictions; 2021 crimes") +
     mapTheme(title_size = 14)
 ```
 
@@ -667,7 +646,7 @@ rbind(crime_KDE_sf, crime_risk_sf) %>%
     ggplot(aes(Risk_Category,Pcnt_of_test_set_crimes)) +
       geom_bar(aes(fill=label), position="dodge", stat="identity") +
       scale_fill_viridis(discrete = TRUE, name = "Model") +
-      labs(title = "Risk prediction vs. Kernel density, 2018 crimes",
+      labs(title = "Risk prediction vs. Kernel density, 2021 crimes",
            y = "% of Test Set crimes (per model)",
            x = "Risk Category") +
   theme_bw() +
