@@ -80,7 +80,7 @@ grid.arrange(ncol=2,
 ggplot() + 
   geom_sf(data = mesaBoundary) +
   geom_sf(data = crimes, colour="red", size=0.1, show.legend = "point") +
-  labs(title= "Opioid Overdose, Mesa - 2017") +
+  labs(title= "Opioid Overdose, Mesa - 2020") +
   mapTheme(title_size = 14),
 
 ggplot() + 
@@ -122,11 +122,6 @@ crime_net <-
          cvID = sample(round(nrow(fishnet) / 24),  #
                        size=nrow(fishnet), replace = TRUE))
 
-ggplot() +
-  geom_sf(data = crime_net, aes(fill = countCrimes), color = NA) +
-  scale_fill_viridis() +
-  labs(title = "Count of Crimes for the fishnet") +
-  mapTheme()
 
 ```
 
@@ -237,7 +232,7 @@ vars_net_nn <-
 ggplot() +
       geom_sf(data = vars_net_nn, aes(fill=value), colour=NA) +
       scale_fill_viridis(name="NN Distance") +
-      labs(title="Abandoned Car NN Distance") +
+      labs(title="Visualize the NN feature") +
       facet_wrap(~Variable) +
       mapTheme()
 
@@ -260,7 +255,7 @@ Join in areal data...
 
 final_net <-
   st_centroid(final_net) %>%
-    st_join(dplyr::select(neighborhoods, NeighborhoodName)) %>%  # if touch, add name
+    st_join(dplyr::select(CouncilDistricts, name)) %>%  # if touch, add name
     #st_join(dplyr::select(CouncilDistricts, District), by = "uniqueID") %>%
       st_drop_geometry() %>%
       left_join(dplyr::select(final_net, geometry, uniqueID)) %>%
@@ -268,7 +263,7 @@ final_net <-
   na.omit()
 
 # for live demo
- mapview::mapview(final_net, zcol = "NeighborhoodName")
+ mapview::mapview(final_net, zcol = "name")
 ```
 
 
@@ -362,15 +357,15 @@ reg.ss.vars <- c("Un_Sheltered.nn","Trans_graffiti.nn","crime.isSig.dist")
 ## RUN REGRESSIONS
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "NeighborhoodName",                           
+  id = "name",                           
   dependentVariable = "countCrimes",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = NeighborhoodName, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = name, countCrimes, Prediction, geometry)
 ```
 ## Table of MAE and standard deviation MAE by regression.
 
 ```{r}
-# calculate errors by NEIGHBORHOOD
+# calculate errors by council district
 error_by_reg_and_fold <- 
   reg.ss.spatialCV %>%
     group_by(cvID) %>% 
@@ -391,6 +386,16 @@ error_by_reg_and_fold %>%
   scale_x_continuous(breaks = seq(0, 11, by = 1)) + 
     labs(title="Distribution of MAE", subtitle = "LOGO-CV",
          x="Mean Absolute Error", y="Count") 
+
+ggplot(mpg, aes(displ, hwy, colour = class)) + 
+  geom_point()
+
+ggplot(error_by_reg_and_fold)+
+  geom_point(aes(x= cvID, y = MAE))+
+  labs(title="MAE for each District",
+       x="District", 
+       y="MAE")+
+  plotTheme()
 ```
 
 
@@ -432,7 +437,7 @@ as.data.frame(crime_KD.1000) %>%
 ```{r}
 correlation.long <-
   st_drop_geometry(final_net) %>%
-    dplyr::select(-uniqueID, -cvID, -NeighborhoodName) %>%
+    dplyr::select(-uniqueID, -cvID, -name) %>%
     gather(Variable, Value, -countCrimes)
 
 correlation.cor <-
@@ -470,17 +475,17 @@ reg.ss.cv <- crossValidate(
   
 reg.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "NeighborhoodName",
+  id = "name",
   dependentVariable = "countCrimes",
   indVariables = reg.vars) %>%
-    dplyr::select(cvID = NeighborhoodName, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = name, countCrimes, Prediction, geometry)
 
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "NeighborhoodName",
+  id = "name",
   dependentVariable = "countCrimes",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = NeighborhoodName, countCrimes, Prediction, geometry)
+    dplyr::select(cvID = name, countCrimes, Prediction, geometry)
 ```
 
 ```{r   message = FALSE, warning=FALSE}
@@ -536,7 +541,7 @@ error_by_reg_and_fold %>%
     geom_sf(aes(fill = MAE)) +
     facet_wrap(~Regression) +
     scale_fill_viridis() +
-    labs(title = "Crime errors by LOGO-CV Regression") +
+    labs(title = "Overdose errors by LOGO-CV Regression") +
     mapTheme() + theme(legend.position="bottom")
 ```
 
@@ -551,10 +556,10 @@ filter(error_by_reg_and_fold, str_detect(Regression, "LOGO"))  %>%
     st_drop_geometry() %>%
     group_by(Regression) %>%
     summarize(Morans_I = moran.mc(abs(Mean_Error), neighborhood.weights, 
-                                 nsim = 999, zero.policy = TRUE, 
+                                 nsim = 99, zero.policy = TRUE, 
                                  na.action=na.omit)[[1]],
               p_value = moran.mc(abs(Mean_Error), neighborhood.weights, 
-                                 nsim = 999, zero.policy = TRUE, 
+                                 nsim = 99, zero.policy = TRUE, 
                                  na.action=na.omit)[[3]])
 ```
 
