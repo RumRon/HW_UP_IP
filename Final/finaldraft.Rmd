@@ -278,6 +278,16 @@ tracts20 <-
          year = "2020") 
 ```
 
+```{r city_boundary}
+city_boundary <-
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/Mesa%20Census%20Tracts%20To%20City%20Boundary.geojson")%>%
+  st_transform('EPSG:4326') %>%
+  dplyr::select(geoid)%>%
+  rename(GEOID = geoid)
+
+ACS_mesa  <-left_join(city_boundary %>% as.data.frame(),tracts20 %>% as.data.frame(), by = "GEOID")
+
+```
 
 
 
