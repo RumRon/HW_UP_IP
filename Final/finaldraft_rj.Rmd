@@ -9,13 +9,17 @@ output:
     code_folding: hide
 ---
 
-This project is to build a  model for nacrcotics that suffers from selection bias. This model is for Chicago. Two new risk factors: envrionment complaints and shot spotter alerts are added to the model.
+## Background 
+
+Nearly 50,000 people died from an opioid-involved overdose in 2019(1). One study found that bystanders were present in more than one in three overdoses involving opioids.4 With the right tools, bystanders can act to prevent overdose deaths. Anyone can carry naloxone, give it to someone experiencing an overdose, and potentially save a life.
+
+### 
+
+### Reference
+1.National Institutes on Health: National Institute on Drug Abuse: Overdose Death Rates
+https://www.drugabuse.gov/drug-topics/trends-statistics/overdose-death-rates
 
 
-city_b: city boundary
-unsheltered_point:Unsheltered Point in Time (PIT) Count Phoenix Metro Area
-operation_homeless: Operation_Off-the-Streets__Homeless_
-graffiti: Transportation Graffiti.geojson
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,  message = FALSE, warning = FALSE)
@@ -121,7 +125,6 @@ crime_net <-
          uniqueID = 1:n(),
          cvID = sample(round(nrow(fishnet) / 24),  #
                        size=nrow(fishnet), replace = TRUE))
-
 
 ```
 
