@@ -285,8 +285,8 @@ city_boundary <-
   dplyr::select(geoid)%>%
   rename(GEOID = geoid)
 
-ACS_mesa  <-left_join(city_boundary %>% as.data.frame(),tracts20 %>% as.data.frame(), by = "GEOID")
-
+ACS_mesa  <-left_join(city_boundary %>% as.data.frame(),tracts20 %>% as.data.frame(), by = "GEOID")%>%
+  st_sf(sf_column_name = 'geometry.x')
 ```
 
 
