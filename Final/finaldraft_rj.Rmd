@@ -159,7 +159,64 @@ neighborhoods <-
   st_transform(st_crs(fishnet)) 
 
 ```
+and aggregate features to our fishnet...
+```{r other_factors}
+police_incidence <- 
+  read.socrata("https://data.mesaaz.gov/Police/Police-Incidents/39rt-2rfj")
+police_incidence <- police_incidence %>%
+    filter(report_year == "2020") %>%
+    dplyr::select(Y = latitude, X = longitude) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
+    st_transform(st_crs(fishnet)) %>%
+    mutate(Legend = "pol_inci")
 
+
+pol_dispatch <-
+  read.socrata("https://data.mesaaz.gov/Police/Police-Computer-Aided-Dispatch-Events/ex94-c5ad")
+pol_dispatch <- pol_dispatch%>% 
+  filter(creation_year == "2020") %>%
+    dplyr::select(Y = latitude, X = longitude) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
+    st_transform(st_crs(fishnet)) %>%
+    mutate(Legend = "pol_dsp")
+
+code_violation <-
+  read.socrata("https://data.mesaaz.gov/Code-Compliance/Code-Violations/ears-rpf9")
+code_violation <- code_violation %>%
+    filter(year_violation_closed == "2020") %>%
+    dplyr::select(Y = latitude, X = longitude) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
+    st_transform(st_crs(fishnet)) %>%
+    mutate(Legend = "Code_Violations")
+
+light <-
+  read.socrata("https://data.mesaaz.gov/Transportation/Streetlight-Fixtures/jrtd-htue")
+light <-light %>%
+  dplyr::select(Y = latitude, X = longitude) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
+    st_transform(st_crs(fishnet)) %>%
+    mutate(Legend = "lights")
+
+# Amenities
+park <-
+  read.socrata("https://data.mesaaz.gov/Parks-Recreation-and-Community-Facilities/Parks-Locations-And-Amenities/djym-pkpp")
+park <- park %>%
+    #filter(year_violation_closed == "2020") %>%
+    dplyr::select(Y = latitude, X = longitude) %>%
+    na.omit() %>%
+    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
+    st_transform(st_crs(fishnet)) %>%
+    mutate(Legend = "park")
+
+rail_station <-
+  st_read("https://raw.githubusercontent.com/RumRon/MUSA508/main/Final/data/LightRailStation.geojson")%>%
+  dplyr::select(geometry)%>%
+  mutate(Legend = "light_rail")
+```
 and aggregate features to our fishnet...
 
 ```{r}
