@@ -273,7 +273,7 @@ for(i in vars){
       labs(title=i) +
       mapTheme()}
 
-do.call(grid.arrange,c(mapList, ncol=2,nrow=2, top="Risk Factors by Fishnet"))
+do.call(grid.arrange,c(mapList, ncol=4,nrow=2, top="Risk Factors by Fishnet"))
 ```
 
 add Nearest Neighbor Feature...
