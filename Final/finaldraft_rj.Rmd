@@ -11,9 +11,15 @@ output:
 
 ## Background 
 
+### opioid overdose
+
 In 2019, approximately 50,000 deaths occurred as a result of an opioid overdose. According to one study, bystanders were present at more than one-third of opioid overdose incidents.4 Bystanders who have the necessary tools, such as naloxone, can intervene during an overdose and potentially save a life.
 
-### 
+### naloxone distribution
+
+Arizona has a organization called Sonoran Prevention Works. They provided "Find free naloxone in Arizona" (https://spwaz.org/arizonanaloxone/). They include volunteers, syringe serices programs, substance Use Treatment, substance Use Prevention Coalition, recovery meeting, recovery housing, library, health department, food bank, emergency services, community health center, community based organization, church, behavioral health, and youth center as potential places to get naloxone when needed. However, Mesa only has 3 community cedical Services
+
+### APP design
 
 ### Reference
 1.National Institutes on Health: National Institute on Drug Abuse: Overdose Death Rates
