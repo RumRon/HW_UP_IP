@@ -543,6 +543,23 @@ ggplot(correlation.long, aes(Value, countCrimes)) +
   geom_text(data = correlation.cor, aes(label = paste("r =", round(correlation, 2))),
             x=-Inf, y=Inf, vjust = 1.5, hjust = -.1) +
   geom_smooth(method = "lm", se = FALSE, colour = "black") +
+  facet_wrap(~Variable, ncol = 6, scales = "free") +
+  labs(title = "Crime count as a function of risk factors") +
+  plotTheme()
+```
+```{r shelter, cache=TRUE}
+special_factor <- correlation.long%>%filter(Variable =="Un_Sheltered.nn" | Variable =="Code_violation.nn")
+spe.cor <-
+  special_factor %>%
+    group_by(Variable) %>%
+    summarize(correlation = cor(Value, countCrimes, use = "complete.obs"))
+
+
+ggplot(special_factor, aes(Value, countCrimes)) +
+  geom_point(size = 0.1) +
+  geom_text(data = spe.cor, aes(label = paste("r =", round(correlation, 2))),
+            x=-Inf, y=Inf, vjust = 1.5, hjust = -.1) +
+  geom_smooth(method = "lm", se = FALSE, colour = "red") +
   facet_wrap(~Variable, ncol = 2, scales = "free") +
   labs(title = "Crime count as a function of risk factors") +
   plotTheme()
