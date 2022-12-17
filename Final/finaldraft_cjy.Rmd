@@ -11,7 +11,7 @@ output:
 ```{r setup}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE , results='hide')
 ```
-# 1. Background
+# 1. Background & Motivation
 
 ## 1.1 opioid overdose
 
@@ -106,6 +106,7 @@ ggplot() +
   labs(title = "Density of Opioid Overdose") +
   mapTheme(title_size = 14) + theme(legend.position = "none"))
 ```
+
 ## 2.2 Creating a fishnet
 Fishnet is one varying smoothly across the landscape, like elevation. The best way to represent this spatial trend in a regression-ready form, is to aggregate point-level data into a lattice of grid cells(Steif,2021).
 
@@ -541,36 +542,7 @@ reg.ss.spatialCV <- crossValidate(
 Table of MAE and standard deviation MAE by regression.
 If the model generalized well, the distribution of errors would cluster tightly together. For the second figure, we can find that the MAE for the second district is higher than other districts, so in further improvement we should pay more attention to this part.
 
-```{r}
-# calculate errors by council district
-error_by_reg_and_fold <- 
-  reg.ss.spatialCV %>%
-    group_by(cvID) %>% 
-    summarize(Mean_Error = mean(Prediction - countCrimes, na.rm = T),
-              MAE = mean(abs(Mean_Error), na.rm = T),
-              SD_MAE = mean(abs(Mean_Error), na.rm = T)) %>%
-  ungroup()
 
-error_by_reg_and_fold %>% 
-  arrange(desc(MAE))
-error_by_reg_and_fold %>% 
-  arrange(MAE)
-
-## plot histogram of OOF (out of fold) errors
-error_by_reg_and_fold %>%
-  ggplot(aes(MAE)) + 
-    geom_histogram(bins = 30, colour="black", fill = "#FDE725FF") +
-  scale_x_continuous(breaks = seq(0, 11, by = 1)) + 
-    labs(title="Distribution of MAE", subtitle = "LOGO-CV",
-         x="Mean Absolute Error", y="Count") 
-
-ggplot(error_by_reg_and_fold)+
-  geom_point(aes(x= cvID, y = MAE))+
-  labs(title="MAE for each District",
-       x="District", 
-       y="MAE")+
-  plotTheme()
-```
 
 ## 3.3 Scatterplot with correlations
 
@@ -619,6 +591,12 @@ final_net2 <- final_net[!is.na(final_net$name),]
 ```
 
 
+## 3.4. Cross-Validation
+
+
+Geospatial risk models are purely spatial, so spatial cross-validation becomes an important option. A well generalized crime predictive model learns the crime risk ‘experience’ at both citywide and local spatial scales. The best way to test for this is to hold out one local area, train the model on the remaining n - 1 areas, predict for the hold out, and record the goodness of fit. In this form of spatial cross-validation called ‘Leave-one-group-out’ cross-validation (LOGO-CV), each neighborhood takes a turn as a hold-out.
+
+After Cross-validation, we can find something about accuracy and generalizability. 
 
 ```{r  results="hide", message = FALSE, warning=FALSE, cache=TRUE}
 reg.vars <- c("Un_Sheltered.nn","Trans_graffiti.nn","crime.isSig.dist", "Plc_incidence.nn", "Plc_dispatch.nn", "Code_violation.nn", "Park.nn", "Light.nn", "Rail_station.nn","pctWhite", "pctBachelors", "pctPoverty", "MedHHInc", "MedRent", "Familyincome")
@@ -653,7 +631,9 @@ reg.ss.spatialCV <- crossValidate(
   indVariables = reg.ss.vars) %>%
     dplyr::select(cvID = name, countCrimes, Prediction, geometry)
 ```
-From the distribution of MAE, we can find that the Spatial LOGO-CV works better because its MAE is more clustered and with smaller numbers.
+
+## 3.5 Accuracy
+A host of goodness of fit metrics are calculated below with particular emphasis on generalizability across space. For k-fold cv model, there are some errors larger than 0.8, which is too larger for this model. Comparing the distribution of MAE, we can find that the Spatial Process features seem to reduce MAE a lot, and make the model more accurate. 
 
 ```{r   message = FALSE, warning=FALSE}
 reg.summary <- 
@@ -683,16 +663,103 @@ error_by_reg_and_fold %>%
   ggplot(aes(MAE)) + 
     geom_histogram(bins = 30, colour="black", fill = "#FDE725FF") +
     facet_wrap(~Regression) +  
-    geom_vline(xintercept = 0) + scale_x_continuous(breaks = seq(0, 8, by = 1)) + 
+    geom_vline(xintercept = 0) + scale_x_continuous(breaks = seq(0, 8, by = 0.2)) + 
     labs(title="Distribution of MAE", subtitle = "k-fold cross validation vs. LOGO-CV",
          x="Mean Absolute Error", y="Count") +
     plotTheme()
 ```
 
-## 3.4 MAE by race context and comparison for a random k-fold vs. spatial cross validation regression.
+As the table shows, the MAE of the model with spatial process and just risk model are the same because there are too few areas to see a clear difference from the graph(we just have 6 coucuil districts). But the spatial process is still an important part in our model.
 
-### 3.4.1 A table of raw errors by race context
-Race is an important factor to predict the heroin overdose. So, race can be used to test our model. As the table shows, race don't have much effect on our model, but the model works better for white districts. The similarity for the race results of two models might because in this case we used the council districts of Mesa, which is too big for spacial LOGO-CV.Plus, Mesa is a predominantly white city with little racial influence.
+```{r MAE,   message = FALSE, warning = FALSE, results='asis'}
+st_drop_geometry(error_by_reg_and_fold) %>%
+  group_by(Regression) %>% 
+    summarize(Mean_MAE = round(mean(MAE), 2),
+              SD_MAE = round(sd(MAE), 2)) %>%
+  kable() %>%
+    kable_styling("striped", full_width = F) %>%
+    row_spec(2, color = "black", background = "#FDE725FF") %>%
+    row_spec(4, color = "black", background = "#FDE725FF") 
+```
+
+We can plot a table to explain this kind of spatial process. As the table shows, with spatial process, the p-value dropped, which means that spatial process features helped account for the spatial variation in heroin overdose.
+
+```{r }
+neighborhood.weights <-
+  filter(error_by_reg_and_fold, Regression == "Spatial LOGO-CV: Spatial Process") %>%
+    group_by(cvID) %>%
+      poly2nb(as_Spatial(.), queen=TRUE) %>%
+      nb2listw(., style="W", zero.policy=TRUE)
+
+a <- filter(error_by_reg_and_fold, str_detect(Regression, "LOGO"))  %>% 
+    st_drop_geometry() %>%
+    group_by(Regression) %>%
+    summarize(Morans_I = moran.mc(abs(Mean_Error), neighborhood.weights, 
+                                 nsim = 99, zero.policy = TRUE, 
+                                 na.action=na.omit)[[1]],
+              p_value = moran.mc(abs(Mean_Error), neighborhood.weights, 
+                                 nsim = 99, zero.policy = TRUE, 
+                                 na.action=na.omit)[[3]])
+
+```
+
+
+```{r, results='asis'}
+kable(a)%>%
+    kable_styling("striped", full_width = F) 
+```
+
+## 3.6 Generalizability
+### 3.6.1 CV for different districts
+Will each council be the same for the LOGO-CV Regression Model? We can check it for generalizability. 
+
+As the figure shows, the MAE is higher in second council district in Mesa. To further explain it, we should do more researches on Mesa's background.
+
+```{r , cache=TRUE}
+error_by_reg_and_fold %>%
+  filter(str_detect(Regression, "LOGO")) %>%
+  ggplot() +
+    geom_sf(aes(fill = MAE)) +
+    facet_wrap(~Regression) +
+    scale_fill_viridis() +
+    labs(title = "Overdose errors by LOGO-CV Regression") +
+    mapTheme() + theme(legend.position="bottom")
+```
+```{r}
+# calculate errors by council district
+error_by_reg_and_fold <- 
+  reg.ss.spatialCV %>%
+    group_by(cvID) %>% 
+    summarize(Mean_Error = mean(Prediction - countCrimes, na.rm = T),
+              MAE = mean(abs(Mean_Error), na.rm = T),
+              SD_MAE = mean(abs(Mean_Error), na.rm = T)) %>%
+  ungroup()
+
+error_by_reg_and_fold %>% 
+  arrange(desc(MAE))
+error_by_reg_and_fold %>% 
+  arrange(MAE)
+
+## plot histogram of OOF (out of fold) errors
+error_by_reg_and_fold %>%
+  ggplot(aes(MAE)) + 
+    geom_histogram(bins = 30, colour="black", fill = "#FDE725FF") +
+  scale_x_continuous(breaks = seq(0, 11, by = 1)) + 
+    labs(title="Distribution of MAE", subtitle = "LOGO-CV",
+         x="Mean Absolute Error", y="Count") 
+
+ggplot(error_by_reg_and_fold)+
+  geom_point(aes(x= cvID, y = MAE))+
+  labs(title="MAE for each District",
+       x="District", 
+       y="MAE")+
+  plotTheme()
+```
+
+
+### 3.6.2 Generalizability by Race
+
+Race is also an important factor to predict the heroin overdose. So, race can be used to test our model. We divide Mesa into two parts. If the percentage of white is larger than 50%, it is a Majority White tract. 
 
 ```{r}
 race_test <- ACS_mesa %>% 
@@ -701,10 +768,18 @@ race_test <- ACS_mesa %>%
   dplyr::select(raceContext)%>%
   na.omit
 
-
-plot(race_test)
 ```
 
+As the table shows, race don't have much effect on our model, but the model works better for white districts. The similarity for the race results of two models might because in this case we used the council districts of Mesa, which is too big for spatial LOGO-CV.  
+Plus, Mesa is a predominantly white city, so the race factor do not work for this city.
+
+```{r plotmesa, cache=TRUE}
+ggplot() + 
+  geom_sf(data = race_test, aes(fill = raceContext)) +
+  #geom_sf(data = crimes, colour="red", size=0.1, show.legend = "point") +
+  labs(title= "Race in Mesa") +
+  mapTheme(title_size = 14)
+```
 
 ```{r fit,   message = FALSE, warning = FALSE, results='asis'}
 reg.summary %>% 
@@ -720,48 +795,7 @@ reg.summary %>%
         kable_styling("striped", full_width = F)  
 ```
 
-### 3.4.2 A table of raw errors comparison
-Similarly, there are too few areas to see a clear difference from the graph. But the spacial process is still an important part in our model.
 
-```{r MAE,   message = FALSE, warning = FALSE, results='asis'}
-st_drop_geometry(error_by_reg_and_fold) %>%
-  group_by(Regression) %>% 
-    summarize(Mean_MAE = round(mean(MAE), 2),
-              SD_MAE = round(sd(MAE), 2)) %>%
-  kable() %>%
-    kable_styling("striped", full_width = F) %>%
-    row_spec(2, color = "black", background = "#FDE725FF") %>%
-    row_spec(4, color = "black", background = "#FDE725FF") 
-```
-
-```{r}
-error_by_reg_and_fold %>%
-  filter(str_detect(Regression, "LOGO")) %>%
-  ggplot() +
-    geom_sf(aes(fill = MAE)) +
-    facet_wrap(~Regression) +
-    scale_fill_viridis() +
-    labs(title = "Overdose errors by LOGO-CV Regression") +
-    mapTheme() + theme(legend.position="bottom")
-```
-
-```{r}
-neighborhood.weights <-
-  filter(error_by_reg_and_fold, Regression == "Spatial LOGO-CV: Spatial Process") %>%
-    group_by(cvID) %>%
-      poly2nb(as_Spatial(.), queen=TRUE) %>%
-      nb2listw(., style="W", zero.policy=TRUE)
-
-filter(error_by_reg_and_fold, str_detect(Regression, "LOGO"))  %>% 
-    st_drop_geometry() %>%
-    group_by(Regression) %>%
-    summarize(Morans_I = moran.mc(abs(Mean_Error), neighborhood.weights, 
-                                 nsim = 99, zero.policy = TRUE, 
-                                 na.action=na.omit)[[1]],
-              p_value = moran.mc(abs(Mean_Error), neighborhood.weights, 
-                                 nsim = 99, zero.policy = TRUE, 
-                                 na.action=na.omit)[[3]])
-```
 
 # 4. Prediction
 ## 4.1 Get 2021 over dose
@@ -804,6 +838,7 @@ crime_risk_sf[is.na(crime_risk_sf)] <- 0
 ## 4.2 Kernel Density Prediction
 For kernel density prediction, we can also find that the west part is the main place for heroin overdose.
 For the city scale of Mesa, we use 300 Ft as the basic legend number. As the picture shows, the scale of 300 Ft works best for the model.
+However, compared with the previous case Chicago, Mesa city is too small to distinguish with the difference between different levels in kernel density prediction. So the legend level of this figure may not be clear enough, but we can still find the density distribution trend in Mesa. 
 
 ```{r}
 # demo of kernel width
@@ -877,7 +912,7 @@ rbind(crime_KDE_sf, crime_risk_sf) %>%
 ```
 
 The bar plot can show if the model make sense.
-The risk prediction model narrowly edges out the Kernel Density in the highest risk categories - suggesting this simple model has some value relative to the business-as-usual hot spot approach. So to some extent, the model is better than the kernal Density prediction model.
+The risk prediction model narrowly edges out the Kernel Density in the highest risk categories - suggesting this simple model has some value relative to the business-as-usual hot spot approach. So to some extent, the model is better than the kernel Density prediction model.
 
 ```{r }
 rbind(crime_KDE_sf, crime_risk_sf) %>%
@@ -912,7 +947,7 @@ In our model, for the bias of heroin overdose, there are two main kinds of bias:
 
 **Reported Bias** We used the reported heroin overdose data. However, more crimes are ‘reported’, and more risk is predicted. Some areas may simply have more reports of heroin overdoses due to more surveillance, rather than a high number of heroin overdoses in the area itself.  
 
-**Observation bias**  heroin overdose are often unobserved because somebody carrying or using heroin is frequently not arrested or sent to hospital - we only observe the event when there is an incident or a police presence.
+**Observation Bias**  heroin overdose are often unobserved because somebody overdosing on heroin  is frequently not arrested or sent to hospital - we only observe the event when there is an incident or a police presence.
 
 </p>  
 
@@ -922,3 +957,8 @@ To improve the model, we could find factors from more categories in the future, 
 We recommend, based on the prediction map, distributing more naloxone to syringe services programs, substance Use Treatment, substance use prevention coalitions, recovery meetings, recovery housing, library, health department, food bank, emergency services, community health centers, community-based organizations, church, behavioral health, and youth center on those high probability areas. If some areas don't have the facilities described above, Sonoran Prevention Works could help to find volunteers. 
 
 An APP named Naloxone Distribution Project (NDP) Helper will be designed to help public health officials notice the possibility of a shortage of naloxone as a prevention resource for each provider (based on the prediction). It's also a tool that helps residents check the provider nearest them by navigating the map to their area. They could then contact the provider directly by phone to arrange a free naloxone pick-up. Detailed UI will be shown in the video.
+
+## 5.3 Yotube link
+https://youtu.be/d-j08CwL-ZE
+
+
